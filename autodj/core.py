@@ -112,12 +112,13 @@ def analyze_track_worker(f):
     """Metadata extraction worker."""
     try:
         y, sr = librosa.load(f, sr=None)
+        bpm, _, _ = get_native_bpm(y, sr)
         return {
             'path': f,
-            'bpm': get_native_bpm(y, sr)[0],
+            'bpm': bpm,
             'key': get_musical_key(y, sr),
             'energy': get_energy_profile(y, sr),
-            'genre': get_genre_archetype(y, sr)
+            'genre': get_genre_archetype(y, sr, bpm=bpm)
         }
     except Exception as e: return {'path': f, 'error': str(e)}
 
@@ -209,7 +210,8 @@ def compile_master_set(args, status_obj=None):
         # Apply Multi-band Compression for final mastering
         if status_obj: status_obj["status"] = "Mastering Dynamics"
         master_array = pydub_to_ndarray(master)
-        master_compressed = apply_multiband_compression(master_array, master.frame_rate)
+        intensity = getattr(args, 'mastering_intensity', 0.5)
+        master_compressed = apply_multiband_compression(master_array, master.frame_rate, intensity=intensity)
         master = ndarray_to_pydub(master_compressed, master.frame_rate)
 
         master.export(args.output, format="flac")
