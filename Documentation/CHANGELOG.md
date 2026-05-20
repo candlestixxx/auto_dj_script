@@ -1,5 +1,11 @@
 # Changelog
 
+## [5.8.0] - 2024-05-23
+### Added
+- **Enhanced Genre Inference (v2)**: Incorporated BPM and spectral flatness into the classification heuristic for superior stylistic detection.
+- **3-Band Multi-band Compression**: Upgraded the mastering chain from 2-band to 3-band (Low, Mid, High) for professional-grade dynamics control.
+- **Mastering Intensity Control**: Added a real-time slider to the Web Dashboard to scale compression thresholds.
+
 ## [5.7.0] - 2024-05-22
 ### Added
 - **Interactive Tempo Ramping**: Added "End BPM" control to the Web Dashboard for set-wide tempo evolution.

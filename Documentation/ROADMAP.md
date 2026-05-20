@@ -1,4 +1,4 @@
-# 🗺 Auto DJ Script: Evolutionary Roadmap (v5.7.0)
+# 🗺 Auto DJ Script: Evolutionary Roadmap (v5.8.0)
 
 ## 🌟 Version 1-4: The Foundation (COMPLETED)
 - [x] **High-Performance Parallel Engine**: Metadata extraction.
@@ -17,6 +17,7 @@
 
 ## 🌠 Version 6.x: The Cloud Era (FUTURE)
 - [ ] **Distributed Rendering**: Multi-node set compilation.
+- [x] **Enhanced Genre Inference (v2)**: Heuristic-based BPM and spectral awareness.
 - [ ] **AI Genre Evolution**: Deep Learning for style inference.
 - [ ] **VST Host Integration**: Support for pro-audio plugins.
 - [ ] **Live Broadcast Client**: Integrated Icecast/RTMP streaming.

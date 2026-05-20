@@ -112,26 +112,38 @@ def apply_limiter(audio_array, threshold=0.99):
         return out
     return audio_array
 
-def apply_multiband_compression(audio_array, sr, crossover=200.0, low_threshold=0.8, high_threshold=0.9):
+def apply_multiband_compression(audio_array, sr, intensity=0.5):
     """
-    Multi-band Compression for dynamic mastering.
+    3-Band Multi-band Compression for professional mastering (v2).
 
-    Why:
-    Compressing the entire frequency spectrum at once often causes 'pumping'
-    where a loud bass hit ducks the volume of the high hats. By splitting the
-    signal into frequency bands and compressing them independently, we can maximize
-    loudness and punch without destructive ducking artifacts.
+    Why 3 Bands?
+    Isolating Low (<200Hz), Mid (200Hz-3kHz), and High (>3kHz) allows for
+    surgical control over the 'punch' of the kick, the 'clarity' of the vocals/leads,
+    and the 'shimmer' of the hats without cross-band pumping.
+
+    Intensity (0.0 to 1.0): Scales the thresholds for all three bands.
     """
-    # 1. Split the signal
-    low_band = apply_dsp_filter(audio_array, sr, 'lowpass', crossover)
-    high_band = apply_dsp_filter(audio_array, sr, 'highpass', crossover)
+    # 1. Frequency Splitting
+    low_band = apply_dsp_filter(audio_array, sr, 'lowpass', 200.0)
 
-    # 2. Compress each band independently
-    low_compressed = apply_limiter(low_band, low_threshold)
-    high_compressed = apply_limiter(high_band, high_threshold)
+    mid_high = apply_dsp_filter(audio_array, sr, 'highpass', 200.0)
+    mid_band = apply_dsp_filter(mid_high, sr, 'lowpass', 3000.0)
 
-    # 3. Sum the bands
-    return low_compressed + high_compressed
+    high_band = apply_dsp_filter(audio_array, sr, 'highpass', 3000.0)
+
+    # 2. Dynamic Threshold Mapping
+    # High intensity = Lower threshold = More compression
+    l_thresh = 1.0 - (0.4 * intensity)
+    m_thresh = 1.0 - (0.3 * intensity)
+    h_thresh = 1.0 - (0.2 * intensity)
+
+    # 3. Compression
+    low_c = apply_limiter(low_band, l_thresh)
+    mid_c = apply_limiter(mid_band, m_thresh)
+    high_c = apply_limiter(high_band, h_thresh)
+
+    # 4. Re-summation
+    return low_c + mid_c + high_c
 
 def apply_bass_swap(outro_array, intro_array, sr, crossover=150.0):
     """

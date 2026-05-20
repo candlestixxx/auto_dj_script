@@ -77,22 +77,36 @@ def analyze_geometry(segment, sr, target_bpm, beats_per_bar, transition_bars):
     beat_times_ms = (librosa.frames_to_time(beat_frames, sr=sr) * 1000).astype(int)
     return beat_times_ms, int(ms_per_transition)
 
-def get_genre_archetype(y, sr):
+def get_genre_archetype(y, sr, bpm=None):
     """
-    Identifies the genre archetype using a multi-feature heuristic.
+    Identifies the genre archetype using a multi-feature heuristic (v2).
 
     Heuristic Logic:
-    - High Spectral Centroid (>3kHz): Likely Psytrance/High-Energy.
-    - Medium Centroid (1.5-3kHz): Likely Techno/House.
-    - Low Centroid (<1.5kHz): Likely Ambient/Chill.
-    - Spectral Rolloff and Flux also contribute to intensity ranking.
+    - High-Energy: BPM > 138 AND (Centroid > 2500 OR Rolloff > 5000).
+    - Techno: 120 < BPM <= 138 AND Centroid > 1500.
+    - House: 110 < BPM <= 128 AND Flatness > 0.01.
+    - Ambient: BPM <= 110 OR Centroid <= 1000.
     """
     centroid = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))
     rolloff = np.mean(librosa.feature.spectral_rolloff(y=y, sr=sr))
+    flatness = np.mean(librosa.feature.spectral_flatness(y=y))
 
-    # Classification logic
-    if centroid > 3000 or rolloff > 6000:
-        return 'High-Energy' # e.g., Psytrance, Hi-Tech
-    elif centroid > 1500:
-        return 'Techno' # e.g., Progressive, Techno
-    return 'Ambient' # e.g., Chillout, Downtempo
+    if bpm is None:
+        # Fallback to legacy centroid-only logic if BPM not provided
+        if centroid > 3000 or rolloff > 6000: return 'High-Energy'
+        if centroid > 1500: return 'Techno'
+        return 'Ambient'
+
+    if bpm > 138 and (centroid > 2500 or rolloff > 5000):
+        return 'High-Energy'
+    elif 120 < bpm <= 140 and centroid > 1500:
+        return 'Techno'
+    elif 105 < bpm <= 128 and flatness > 0.01:
+        return 'House'
+    elif bpm <= 105 or centroid <= 1000:
+        return 'Ambient'
+
+    # Final density-based fallback
+    if centroid > 2500: return 'High-Energy'
+    if centroid > 1500: return 'Techno'
+    return 'Ambient'
