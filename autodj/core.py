@@ -54,7 +54,7 @@ def dynamic_warp(y, sr, native_bpm, start_target_bpm, end_target_bpm):
     chunks = np.array_split(y, num_chunks)
     warped_chunks = []
     for i, chunk in enumerate(chunks):
-        target_bpm = start_target_bpm + (end_target_bpm - start_target_bpm) * (i / num_chunks)
+        target_bpm = start_target_bpm + (end_target_bpm - start_bpm) * (i / num_chunks)
         rate = target_bpm / native_bpm
         warped_chunks.append(librosa.effects.time_stretch(chunk, rate=rate))
     return np.concatenate(warped_chunks)
@@ -78,7 +78,7 @@ def warp_worker(args):
 
 
 def analyze_track_worker(f):
-    """Metadata extraction worker (runs in thread)."""
+    """Metadata extraction worker."""
     try:
         native_bpm, y, sr = get_native_bpm(f)
         return {
@@ -93,15 +93,23 @@ def analyze_track_worker(f):
         return {'path': f, 'error': str(e)}
 
 
-def find_optimal_order(files):
+def find_optimal_order(files, status_obj=None):
     """Sequencing optimization via Simulated Annealing."""
-    print(f"[*] Analyzing {len(files)} tracks...")
-    # Use ThreadPoolExecutor (safe on Windows, no pickle issues)
-    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-        results = list(tqdm(
-            executor.map(analyze_track_worker, files),
-            total=len(files), desc="Analyzing", unit="track"
-        ))
+    total = len(files)
+    print(f"[*] Analyzing {total} tracks...")
+
+    # Run analysis sequentially (librosa is GIL-bound, threading doesn't help)
+    results = []
+    for i, f in enumerate(files):
+        r = analyze_track_worker(f)
+        results.append(r)
+        if status_obj is not None:
+            status_obj["status"] = f"Analyzing Library ({i+1}/{total})"
+            status_obj["progress"] = int((i / total) * 50)  # Analysis = 0-50%
+        if 'error' not in r:
+            print(f"  [{i+1}/{total}] {os.path.basename(f)}: BPM={r['bpm']:.1f}, Key={r['key']}, Genre={r['genre']}")
+        else:
+            print(f"  [{i+1}/{total}] {os.path.basename(f)}: ERROR - {r['error']}")
 
     meta = [r for r in results if 'error' not in r]
     if not meta:
@@ -139,6 +147,10 @@ def find_optimal_order(files):
             best_o, best_s = new_o, new_s
         temp = config.SA_INITIAL_TEMP / np.log(1 + _ + 1)
 
+    if status_obj is not None:
+        status_obj["status"] = "Optimizing track order..."
+        status_obj["progress"] = 50
+
     return [x['path'] for x in best_o], best_o
 
 
@@ -156,10 +168,8 @@ def compile_master_set(args, status_obj=None):
         print("[ERROR] No audio files found in input folder.")
         return
 
-    if status_obj:
-        status_obj["status"] = "Analyzing Library"
-
-    all_files, meta_list = find_optimal_order(all_files)
+    # Phase 1: Analysis (0-50%)
+    all_files, meta_list = find_optimal_order(all_files, status_obj=status_obj)
 
     if meta_list is None:
         if status_obj:
@@ -168,6 +178,7 @@ def compile_master_set(args, status_obj=None):
 
     num_tracks = len(all_files)
 
+    # Phase 2: Warping (50-75%)
     if status_obj:
         status_obj["status"] = f"Warping {num_tracks} tracks"
 
@@ -180,12 +191,15 @@ def compile_master_set(args, status_obj=None):
         tar_key = meta_list[i-1]['key'] if i > 0 else None
         warp_tasks.append((all_files[i], meta_list[i]['bpm'], t_s_bpm, t_e_bpm, meta_list[i]['key'], tar_key, True))
 
-    with ThreadPoolExecutor(max_workers=max(1, os.cpu_count() // 2)) as executor:
-        warped_results = list(tqdm(
-            executor.map(warp_worker, warp_tasks),
-            total=num_tracks, desc="Warping", unit="track"
-        ))
+    warped_results = []
+    for i, task in enumerate(warp_tasks):
+        result = warp_worker(task)
+        warped_results.append(result)
+        if status_obj is not None:
+            status_obj["status"] = f"Warping track {i+1}/{num_tracks}"
+            status_obj["progress"] = 50 + int((i / num_tracks) * 25)
 
+    # Phase 3: Mixing (75-100%)
     if status_obj:
         status_obj["status"] = "Mixing Master Stream"
 
@@ -229,7 +243,7 @@ def compile_master_set(args, status_obj=None):
 
         if status_obj:
             status_obj["tracklist"] = tracklist
-            status_obj["progress"] = int((i / (num_tracks-1)) * 100)
+            status_obj["progress"] = 75 + int((i / (num_tracks-1)) * 25)
 
         m_body, m_outro = master[:-ms_trans], master[-ms_trans:]
         n_intro, n_body = nxt[:ideal_p], nxt[ideal_p:]
@@ -256,6 +270,7 @@ def compile_master_set(args, status_obj=None):
         # Apply Multi-band Compression for final mastering
         if status_obj:
             status_obj["status"] = "Mastering Dynamics"
+            status_obj["progress"] = 98
         master_array = pydub_to_ndarray(master)
         master_compressed = apply_multiband_compression(master_array, master.frame_rate)
         master = ndarray_to_pydub(master_compressed, master.frame_rate)
@@ -264,6 +279,7 @@ def compile_master_set(args, status_obj=None):
 
         if status_obj:
             status_obj["status"] = "Complete"
+            status_obj["progress"] = 100
 
         tl_path = os.path.splitext(args.output)[0] + "_tracklist.txt"
         with open(tl_path, "w") as f:
