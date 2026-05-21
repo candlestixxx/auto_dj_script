@@ -80,7 +80,20 @@ async def websocket_endpoint(websocket: WebSocket):
             manager.active_connections.remove(websocket)
 
 @app.post("/start")
-async def start_mixing(background_tasks: BackgroundTasks, bpm: float = Form(...), end_bpm: float = Form(None), reorder: bool = Form(False), archetype: str = Form("auto"), mastering_intensity: float = Form(0.5), dynamic_transitions: bool = Form(True), genre_aware_mastering: bool = Form(True), broadcast_mode: bool = Form(False), stream_url: str = Form(None)):
+async def start_mixing(
+    background_tasks: BackgroundTasks,
+    bpm: float = Form(...),
+    end_bpm: float = Form(None),
+    reorder: bool = Form(False),
+    archetype: str = Form("auto"),
+    mastering_intensity: float = Form(0.5),
+    dynamic_transitions: bool = Form(True),
+    genre_aware_mastering: bool = Form(True),
+    dynamic_energy_mastering: bool = Form(True),
+    adaptive_spectral_balancing: bool = Form(True),
+    broadcast_mode: bool = Form(False),
+    stream_url: str = Form(None)
+):
     class Args:
         def __init__(self):
             self.input = config.INPUT_FOLDER
@@ -98,6 +111,8 @@ async def start_mixing(background_tasks: BackgroundTasks, bpm: float = Form(...)
             self.mastering_intensity = mastering_intensity
             self.dynamic_transitions = dynamic_transitions
             self.genre_aware_mastering = genre_aware_mastering
+            self.dynamic_energy_mastering = dynamic_energy_mastering
+            self.adaptive_spectral_balancing = adaptive_spectral_balancing
             self.broadcast_mode = broadcast_mode
             self.stream_url = stream_url
 

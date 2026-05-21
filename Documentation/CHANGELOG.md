@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.4.0] - 2024-05-26
+### Added
+- **Adaptive Spectral Balancing**: Real-time frequency clash detection and automatic gain compensation during transitions.
+- **Dynamic Energy Mastering**: Automatic scaling of mastering intensity based on track energy profiles to prevent "ear fatigue" in high-energy sets.
+- **Spectral UI**: Real-time clash detection status integrated into the Command Console telemetry.
+
 ## [6.3.0] - 2024-05-26
 ### Added
 - **Live Broadcast Client**: Integrated FFmpeg-based RTMP/Icecast streaming capability.

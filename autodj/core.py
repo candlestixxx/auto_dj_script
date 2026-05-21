@@ -212,7 +212,9 @@ def compile_master_set(args, status_obj=None):
             t1, t2 = meta_list[i-1], meta_list[i]
             e_diff = t2['energy'] - t1['energy']
 
-            if t2['genre'] == 'High-Energy' and e_diff >= -0.02:
+            if getattr(args, 'adaptive_spectral_balancing', True):
+                mode, rationale = 'spectral_balance', "Adaptive Spectral Balancing active"
+            elif t2['genre'] == 'High-Energy' and e_diff >= -0.02:
                 mode, rationale = 'bass_swap', "Energy Match/Increase (High-Energy)"
             elif e_diff < -0.05:
                 mode, rationale = 'echo_out', "Significant Energy Drop detected"
@@ -264,6 +266,15 @@ def compile_master_set(args, status_obj=None):
 
         master_array = pydub_to_ndarray(master)
         intensity = getattr(args, 'mastering_intensity', 0.5)
+
+        # Dynamic Energy Mastering (v6.4.0)
+        # Scales intensity based on track energy variance to prevent fatigue
+        if getattr(args, 'dynamic_energy_mastering', True) and meta_list:
+            avg_energy = np.mean([m['energy'] for m in meta_list])
+            # Scale intensity: higher energy tracks get slightly less compression to preserve transients
+            # lower energy tracks get more "beef"
+            energy_factor = 1.0 - (avg_energy * 0.2)
+            intensity *= energy_factor
 
         # Determine Dominant Genre for Mastering Profile
         dom_genre = 'Default'

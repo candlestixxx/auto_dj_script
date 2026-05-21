@@ -138,6 +138,28 @@ def apply_limiter(audio_array, threshold=0.99):
         return out
     return audio_array
 
+def calculate_spectral_clash(outro_array, intro_array, sr):
+    """
+    Analyzes frequency band overlap between two audio segments.
+    Returns a dictionary of energy ratios for Low, Mid, and High bands.
+    """
+    # 1. Frequency Splitting
+    def get_bands(arr):
+        l = apply_dsp_filter(arr, sr, 'lowpass', 200.0)
+        m_h = apply_dsp_filter(arr, sr, 'highpass', 200.0)
+        m = apply_dsp_filter(m_h, sr, 'lowpass', 3000.0)
+        h = apply_dsp_filter(arr, sr, 'highpass', 3000.0)
+        return np.mean(np.abs(l)), np.mean(np.abs(m)), np.mean(np.abs(h))
+
+    o_l, o_m, o_h = get_bands(outro_array)
+    i_l, i_m, i_h = get_bands(intro_array)
+
+    return {
+        'low': (o_l + i_l) / (max(o_l, i_l, 1e-6)),
+        'mid': (o_m + i_m) / (max(o_m, i_m, 1e-6)),
+        'high': (o_h + i_h) / (max(o_h, i_h, 1e-6))
+    }
+
 def apply_multiband_compression(audio_array, sr, intensity=0.5, genre_profile=None):
     """
     3-Band Multi-band Compression with Genre-Aware Profiles (v3).
@@ -269,4 +291,29 @@ class LowCutBuild(TransitionArchetype):
         cutoff = kwargs.get('highpass', 300.0)
         f_m = apply_dsp_filter(outro_array, sr, 'highpass', cutoff)
         f_n = apply_dsp_filter(intro_array, sr, 'highpass', cutoff)
+        return f_m, f_n
+
+@ArchetypeRegistry.register
+class SpectralBalancedMix(TransitionArchetype):
+    name = "spectral_balance"
+    display_name = "Adaptive Spectral Balancing"
+
+    @staticmethod
+    def apply(outro_array, intro_array, sr, **kwargs):
+        """
+        Intelligently resolves frequency clashes by dipping bands in the outgoing track.
+        """
+        clashes = calculate_spectral_clash(outro_array, intro_array, sr)
+
+        f_m = np.copy(outro_array)
+        f_n = np.copy(intro_array)
+
+        # If Low bands clash (ratio > 1.5), aggressively dip the outgoing bass
+        if clashes['low'] > 1.5:
+            f_m = apply_dsp_filter(f_m, sr, 'highpass', 150.0)
+
+        # If High bands clash, apply a gentle shelf to the outgoing track
+        if clashes['high'] > 1.5:
+            f_m = apply_dsp_filter(f_m, sr, 'lowpass', 5000.0)
+
         return f_m, f_n

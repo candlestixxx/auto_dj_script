@@ -21,6 +21,8 @@
 - [x] **Intelligent Transition Selector**: Energy-aware style detection.
 - [x] **AI-Enhanced Genre Classification (v3)**: Timbre and contrast awareness.
 - [x] **Genre-Aware Mastering Profiles**: Automatic dynamics tailoring.
+- [x] **Adaptive Spectral Balancing**: Real-time clash detection (v6.4.0).
+- [x] **Dynamic Energy Mastering**: Profile-based intensity scaling (v6.4.0).
 - [ ] **Distributed Rendering**: Multi-node set compilation.
 - [ ] **AI Genre Evolution**: Deep Learning (CNN) for style inference.
 - [ ] **VST Host Integration**: Support for pro-audio plugins.
