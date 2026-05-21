@@ -23,7 +23,7 @@ from .dsp import (
     apply_dsp_filter, trim_silence, normalize_lufs,
     apply_bass_swap, apply_echo_out, apply_hpf_sweep,
     apply_limiter, apply_multiband_compression,
-    apply_s_curve_fade
+    apply_log_fade, ArchetypeRegistry
 )
 from .utils import pydub_to_ndarray, ndarray_to_pydub
 from .version import __version__
@@ -268,16 +268,17 @@ def compile_master_set(args, status_obj=None):
         ms_trans = ideal_p
 
         # Intelligent Tail Extension (v6.6.0)
-        ext_rationale = ""
-        if ms_trans > len(prev_nxt):
+        # If the incoming intro is longer than the outgoing track, we loop the outgoing tail
+        if ms_trans > (len(master) - tracklist[-1]['start_ms']):
             loop_bar = identify_loopable_phrase(prev_y_w, sr, t_s_bpm, args.beats_per_bar)
-            num_loops = int(np.ceil((ms_trans - len(prev_nxt)) / (len(loop_bar) / sr * 1000))) + 1
+            needed_ms = ms_trans - (len(master) - tracklist[-1]['start_ms'])
+            num_loops = int(np.ceil(needed_ms / (len(loop_bar) / sr * 1000))) + 1
             ext_segment = np.tile(loop_bar, num_loops)
-            prev_nxt += ndarray_to_pydub(ext_segment, sr)
-            ext_rationale = " [Loop-Extended]"
+            master += ndarray_to_pydub(ext_segment, sr)
+            print(f"  [TAIL] Extended outgoing track by {needed_ms/1000:.1f}s to match intro.")
 
         ms_trans = min(ms_trans, len(master))
-        track_start_ms = current_time_ms - ms_trans
+        track_start_ms = len(master) - ms_trans
 
         tracklist.append({'timestamp': ms_to_timestamp(track_start_ms), 'file': os.path.basename(all_files[i]),
                            'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
