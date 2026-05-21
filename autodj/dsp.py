@@ -211,6 +211,25 @@ def apply_multiband_compression(audio_array, sr, intensity=0.5, genre_profile=No
 
     return summed
 
+def apply_s_curve_fade(audio_array, fade_type='in'):
+    """
+    Applies a Sigmoid (S-Curve) fade to the audio array.
+    S-curves are more musical than linear fades as they avoid 'abrupt' starts/ends.
+    """
+    if audio_array.ndim == 2:
+        num_samples = audio_array.shape[1]
+    else:
+        num_samples = len(audio_array)
+        
+    # Generate S-curve: 0.5 * (1 + sin(pi * (x - 0.5)))
+    x = np.linspace(0, 1, num_samples)
+    curve = 0.5 * (1 + np.sin(np.pi * (x - 0.5)))
+    
+    if fade_type == 'out':
+        curve = 1.0 - curve
+        
+    return audio_array * curve
+
 @ArchetypeRegistry.register
 class BassSwap(TransitionArchetype):
     name = "bass_swap"
@@ -317,6 +336,42 @@ class SpectralBalancedMix(TransitionArchetype):
         if clashes['high'] > 1.5:
             f_m = apply_dsp_filter(f_m, sr, 'lowpass', 5000.0)
 
+        return f_m, f_n
+
+@ArchetypeRegistry.register
+class DualFilterSweep(TransitionArchetype):
+    name = "progressive"
+    display_name = "Dual-Sweep (Professional)"
+
+    @staticmethod
+    def apply(outro_array, intro_array, sr, **kwargs):
+        """
+        Progressively builds the intro by sweeping filters.
+        Out track: Low-pass from 20kHz -> 200Hz
+        In track: High-pass from 15kHz -> 20Hz
+        """
+        block_size = int(sr * 0.1)
+        num_blocks = (outro_array.shape[1] if outro_array.ndim == 2 else len(outro_array)) // block_size
+        
+        f_m = np.copy(outro_array)
+        f_n = np.copy(intro_array)
+        
+        for b in range(num_blocks):
+            start, end = b * block_size, (b + 1) * block_size
+            progress = b / num_blocks
+            
+            # Outgoing: LP from 20000 -> 200
+            lp_freq = 20000 * (200 / 20000) ** progress
+            # Incoming: HP from 15000 -> 20
+            hp_freq = 15000 * (20 / 15000) ** progress
+            
+            if outro_array.ndim == 2:
+                f_m[:, start:end] = apply_dsp_filter(f_m[:, start:end], sr, 'lowpass', lp_freq)
+                f_n[:, start:end] = apply_dsp_filter(f_n[:, start:end], sr, 'highpass', hp_freq)
+            else:
+                f_m[start:end] = apply_dsp_filter(f_m[start:end], sr, 'lowpass', lp_freq)
+                f_n[start:end] = apply_dsp_filter(f_n[start:end], sr, 'highpass', hp_freq)
+                
         return f_m, f_n
 
 # Backward Compatibility Wrappers (v5.8.x transition)
