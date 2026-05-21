@@ -105,19 +105,26 @@ def detect_phrases(y, sr):
     return (librosa.frames_to_time(boundaries, sr=sr) * 1000).astype(int)
 
 def analyze_geometry(segment, sr, target_bpm, beats_per_bar, transition_bars):
-    """Calculates millisecond offsets for track segmentation and mixing."""
+    """Calculates millisecond offsets for track segmentation and phase alignment."""
     samples = pydub_to_ndarray(segment)
-    # samples is already forced to (2, N) by pydub_to_ndarray
     samples_mono = librosa.to_mono(samples)
     
     ms_per_beat = 60000.0 / target_bpm
     ms_per_bar = ms_per_beat * beats_per_bar
     ms_per_transition = ms_per_bar * transition_bars
     
+    # Track-wide beat detection to find the "groove"
     onset_env = librosa.onset.onset_strength(y=samples_mono, sr=sr)
-    _, beat_frames = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, start_bpm=target_bpm)
+    tempo, beat_frames = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, start_bpm=target_bpm)
     beat_times_ms = (librosa.frames_to_time(beat_frames, sr=sr) * 1000).astype(int)
-    return beat_times_ms, int(ms_per_transition)
+    
+    # Find the first real beat (first strong transient)
+    # This is critical for tracks with long ambient intros
+    first_beat_ms = 0
+    if len(beat_times_ms) > 0:
+        first_beat_ms = beat_times_ms[0]
+        
+    return beat_times_ms, int(ms_per_transition), first_beat_ms
 
 def calculate_dynamic_transition(outro_y, intro_y, sr, target_bpm, beats_per_bar):
     """
