@@ -11,16 +11,15 @@ from pydub import AudioSegment
 def pydub_to_ndarray(segment):
     """
     Converts a Pydub AudioSegment into a normalized float32 NumPy array.
-
-    Implementation:
-    - Extracts raw sample data.
-    - Reshapes into (Channels, Samples) for librosa compatibility.
-    - Scales by 2^15 to achieve unity gain in the float domain.
+    FORCES STEREO output to maintain pipeline consistency.
     """
     samples = np.array(segment.get_array_of_samples(), dtype=np.float32)
     if segment.channels == 2:
-        # Pydub interleaves [L, R, L, R]. We need [[L, L], [R, R]].
         samples = samples.reshape((-1, 2)).T
+    else:
+        # Force mono to stereo
+        samples = np.vstack([samples, samples])
+    
     samples /= (2**15)
     return samples
 

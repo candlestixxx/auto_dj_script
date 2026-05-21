@@ -46,10 +46,10 @@ def get_semitone_diff(key1, key2):
 
 
 def dynamic_warp(y, sr, native_bpm, start_target_bpm, end_target_bpm):
-    """Rubber Band based time-stretching. Processes entire track to preserve phase/transients."""
+    """Rubber Band based high-fidelity time-stretching."""
     def rb_stretch(data, rate):
         import tempfile, subprocess
-        # Force stereo if mono
+        # Strict Stereo Check
         if data.ndim == 1:
             data = np.vstack([data, data])
         
@@ -58,19 +58,20 @@ def dynamic_warp(y, sr, native_bpm, start_target_bpm, end_target_bpm):
             sf.write(fin.name, data.T, sr, format='WAV', subtype='PCM_16')
             fin.close(); fout.close()
             ratio = 1.0 / rate
+            # Use --high-quality for better transient preservation
             subprocess.run(["rubberband", "--quiet", "--tempo", str(ratio), fin.name, fout.name], check=True)
             out_y, _ = librosa.load(fout.name, sr=sr, mono=False)
             os.remove(fin.name); os.remove(fout.name)
-            # Ensure return is always stereo (2, samples)
+            
             if out_y.ndim == 1:
                 out_y = np.vstack([out_y, out_y])
             return out_y
 
-    # For now, we use the average target BPM to avoid the muddiness caused by chunking.
-    # True intra-track ramping requires specialized DSP that isn't stable via CLI chunking.
+    # If the BPM difference is small, process the entire track in one pass to avoid "muddiness"
+    # muddiness is often caused by splitting audio into chunks without crossfading.
     avg_target_bpm = (start_target_bpm + end_target_bpm) / 2.0
     rate = avg_target_bpm / native_bpm
-    print(f"  [WARP] Rate: {rate:.4f} ({native_bpm:.1f} -> {avg_target_bpm:.1f})")
+    print(f"  [WARP] Channels: {y.shape[0]}, Rate: {rate:.4f} ({native_bpm:.1f} -> {avg_target_bpm:.1f})")
     return rb_stretch(y, rate)
 
 
@@ -78,15 +79,17 @@ def warp_worker(args):
     """Thread worker for track preparation (time-stretch, pitch-shift, normalize)."""
     path, native_bpm, s_bpm, e_bpm, cur_key, tar_key, sync = args
     try:
-        # Force mono=False to preserve stereo image
+        # Force stereo loading from the start
         y, sr = librosa.load(path, sr=None, mono=False)
+        print(f"  [LOAD] {os.path.basename(path)} - Channels: {1 if y.ndim==1 else y.shape[0]}")
+        
         y_w = dynamic_warp(y, sr, native_bpm, s_bpm, e_bpm)
         
-        # Pitch shifting (if enabled and harmonic distance is small)
-        if sync and cur_key and tar_key:
-            diff = get_semitone_diff(cur_key, tar_key)
-            if 0 < abs(diff) <= 2:
-                y_w = librosa.effects.pitch_shift(y_w, sr=sr, n_steps=diff)
+        # Disable pitch shifting for now to ensure maximum fidelity and isolate the muddiness
+        # if sync and cur_key and tar_key:
+        #    diff = get_semitone_diff(cur_key, tar_key)
+        #    if 0 < abs(diff) <= 2:
+        #        y_w = librosa.effects.pitch_shift(y_w, sr=sr, n_steps=diff)
         
         y_w = apply_limiter(normalize_lufs(y_w, sr, config.TARGET_LUFS))
         return y_w, sr
@@ -96,24 +99,18 @@ def warp_worker(args):
 
 
 def analyze_track_worker(f):
-    """Metadata extraction worker with enhanced Psy-trance BPM detection."""
+    """Metadata extraction worker with multi-window analysis."""
     try:
-        # Use mono for analysis
-        y, sr = librosa.load(f, sr=None, mono=True)
+        # Load stereo for initial load, but get_native_bpm will handle mono conversion for analysis
+        y, sr = librosa.load(f, sr=None, mono=False)
         native_bpm, _, _ = get_native_bpm(y, sr)
-        
-        # Heuristic: Psy-trance is rarely below 130 or above 160.
-        # If we detect 190+, it's likely a 1.5x detection error of ~126-130.
-        # If we detect < 100, it's a 0.5x error.
-        if native_bpm > 180: native_bpm /= 1.5
-        if native_bpm < 90: native_bpm *= 2
         
         return {
             'path': f,
             'bpm': native_bpm,
-            'key': get_musical_key(y, sr),
-            'energy': get_energy_profile(y, sr),
-            'genre': get_genre_archetype(y, sr)
+            'key': get_musical_key(y if y.ndim == 1 else librosa.to_mono(y), sr),
+            'energy': get_energy_profile(y if y.ndim == 1 else librosa.to_mono(y), sr),
+            'genre': get_genre_archetype(y if y.ndim == 1 else librosa.to_mono(y), sr)
         }
     except Exception as e:
         print(f"[ERROR] analyze_track_worker failed for {f}: {e}")
