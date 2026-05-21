@@ -44,13 +44,14 @@ class ArchetypeRegistry:
 
 def apply_dsp_filter(audio_array, sr, filter_type='highpass', cutoff=150.0):
     """
-    Applies a 10th-order Butterworth digital filter using Second-Order Sections (SOS).
+    Applies a 4th-order Butterworth digital filter using Second-Order Sections (SOS).
 
-    Why 10th Order?
-    Standard DJ mixers often use 2nd or 4th order filters. A 10th-order filter
-    provides a much steeper roll-off (~60dB per octave), allowing for surgical
-    isolation of frequency bands during complex transitions (e.g., swapping bass
-    lines without any bleed from the outgoing track).
+    Why 4th Order?
+    Standard DJ mixers often use 2nd or 4th order filters (24dB/octave). While
+    higher orders provide steeper roll-off, they introduce significant phase
+    distortion and "ringing" near the cutoff frequency, which can make the audio
+    sound "washed out" or hollow. 4th-order provides a great balance of isolation
+    and musical transparency.
 
     Why SOS?
     Second-order sections are more numerically stable than transfer function (ba)
@@ -61,7 +62,7 @@ def apply_dsp_filter(audio_array, sr, filter_type='highpass', cutoff=150.0):
     # Safety: Clamp cutoff within stable ranges
     cutoff = max(20.0, min(cutoff, nyquist - 100))
     normal_cutoff = cutoff / nyquist
-    sos = butter(10, normal_cutoff, btype=filter_type, output='sos')
+    sos = butter(4, normal_cutoff, btype=filter_type, output='sos')
 
     if audio_array.ndim == 2:
         # Stereo processing: Apply filter to each channel independently
@@ -317,3 +318,17 @@ class SpectralBalancedMix(TransitionArchetype):
             f_m = apply_dsp_filter(f_m, sr, 'lowpass', 5000.0)
 
         return f_m, f_n
+
+# Backward Compatibility Wrappers (v5.8.x transition)
+def apply_bass_swap(outro, intro, sr, **kwargs):
+    return BassSwap.apply(outro, intro, sr, **kwargs)
+
+def apply_echo_out(outro, sr, **kwargs):
+    # Core expected echo_out to only take outro and return one array
+    res, _ = EchoOut.apply(outro, None, sr, **kwargs)
+    return res
+
+def apply_hpf_sweep(outro, sr, **kwargs):
+    # Core expected hpf_sweep to only take outro and return one array
+    res, _ = HPFSweep.apply(outro, None, sr, **kwargs)
+    return res
