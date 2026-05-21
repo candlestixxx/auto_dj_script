@@ -18,7 +18,7 @@ import config
 from .analysis import (get_native_bpm, get_musical_key, analyze_geometry,
                        get_camelot_key, is_harmonically_compatible,
                        get_energy_profile, detect_phrases, get_genre_archetype,
-                       calculate_dynamic_transition)
+                       calculate_dynamic_transition, identify_loopable_phrase)
 from .dsp import (apply_dsp_filter, trim_silence, normalize_lufs,
                   apply_limiter, apply_multiband_compression, ArchetypeRegistry)
 from .utils import pydub_to_ndarray, ndarray_to_pydub
@@ -202,6 +202,15 @@ def compile_master_set(args, status_obj=None):
             cl = ph[np.argmin(np.abs(ph - fixed_p))]
             if abs(cl - fixed_p) < config.PHRASE_ANCHOR_TOLERANCE_MS: ideal_p = cl
 
+        # Intelligent Tail Extension (v6.6.0)
+        ext_rationale = ""
+        if ms_trans > len(prev_nxt):
+            loop_bar = identify_loopable_phrase(prev_y_w, sr, t_s_bpm, args.beats_per_bar)
+            num_loops = int(np.ceil((ms_trans - len(prev_nxt)) / (len(loop_bar) / sr * 1000))) + 1
+            ext_segment = np.tile(loop_bar, num_loops)
+            prev_nxt += ndarray_to_pydub(ext_segment, sr)
+            ext_rationale = " [Loop-Extended]"
+
         ms_trans = min(ms_trans, len(prev_nxt))
         track_start_ms = current_time_ms - ms_trans
 
@@ -212,9 +221,9 @@ def compile_master_set(args, status_obj=None):
             t1, t2 = meta_list[i-1], meta_list[i]
             e_diff = t2['energy'] - t1['energy']
             if getattr(args, 'adaptive_spectral_balancing', True):
-                mode, rationale = 'spectral_balance', "Adaptive Spectral Balancing active"
+                mode, rationale = 'spectral_balance', "Adaptive Spectral Balancing active" + ext_rationale
             elif t2['genre'] == 'High-Energy' and e_diff >= -0.02:
-                mode, rationale = 'bass_swap', "Energy Match/Increase (High-Energy)"
+                mode, rationale = 'bass_swap', "Energy Match/Increase (High-Energy)" + ext_rationale
             elif e_diff < -0.05:
                 mode, rationale = 'echo_out', "Significant Energy Drop detected"
             elif t_bars >= 32:

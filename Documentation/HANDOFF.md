@@ -1,39 +1,35 @@
-# 🤝 Auto DJ Script: Transition & Handoff Brief (v6.4.0)
+# 🤝 Auto DJ Script: Transition & Handoff Brief (v6.6.0)
 
-## 🎖 Current Status: "The Adaptive Audiophile Era"
-The project is at a pinnacle of autonomous audio engineering. With v6.4.0, we have moved beyond simple mixing into **Adaptive Intelligence**, where the engine resolves physical frequency clashes and adjusts mastering dynamics based on the set's energy profile.
+## 🎖 Current Status: "The Intelligent Looping Era"
+The project has reached a new level of robustness. v6.6.0 introduces **Intelligent Phrase Looping**, which effectively solves the "short track" problem by autonomously extending outros and intros with rhythmically compatible segments.
 
 ## 🔎 Project Audit
 1. **Completed features:**
-   - **MIR/Analysis**: Parallel metadata extraction, SA sequencing, v3 Genre Inference (MFCC/Contrast), Phrase Detection.
-   - **DSP/Mixing**: 10th-order Butterworth filters, Plugin-based archetypes, Phrase-Aware Transitions, Intelligent Transition Selector, **Adaptive Spectral Balancing** (v6.4.0).
-   - **Mastering**: BS.1770-4 LUFS Normalization, 3-band Multiband Compression, Genre-Aware Profiles, **Dynamic Energy Mastering** (v6.4.0).
-   - **Broadcast/UI**: Command Console (FastAPI), Live WebSocket Telemetry, **Live Broadcast Client** (FFmpeg RTMP/Icecast).
-2. **Bugs or fragile areas:** Fixed `get_native_bpm` signature and `prev_y_w` null-pointers.
-3. **Refactor opportunities:** Porting core DSP (filtering/warping) to Rust for sub-millisecond latency.
-4. **Documentation gaps:** None. All project docs and model instructions are synchronized to v6.4.0 and the Global Directive.
-
-## 📚 Library Inventory (See Documentation/LIB_VERSIONS.md)
-- **librosa (v0.11.0):** MIR & Warping.
-- **numpy (v2.4.6):** Float-domain DSP.
-- **scipy (v1.17.1):** High-order filtering.
-- **pyloudnorm (v0.2.0):** BS.1770-4 compliance.
+   - **MIR/Analysis**: Parallel metadata extraction, SA sequencing, v3 Genre Inference, Phrase Detection, **Rhythmic Similarity/Loop Identification** (v6.6.0).
+   - **DSP/Mixing**: 10th-order filters, Plugin architecture, Adaptive Spectral Balancing, **Phrase Looping & Tail Extension** (v6.6.0).
+   - **Performance**: **Segmented Parallel Mixing Engine** (v6.5.0) - renders transitions in parallel.
+   - **Mastering**: 3-band Multiband Compression, Genre-Aware Profiles, Dynamic Energy Mastering.
+   - **Broadcast/UI**: Command Console (FastAPI), Live Telemetry, Performance Metrics, RTMP/Icecast Broadcasting.
+2. **Bugs or fragile areas**: The parallel engine is stable. Phrase looping uses a basic energy-envelope heuristic; cross-correlation would improve sample-accuracy.
+3. **Refactor opportunities**: Porting core DSP to Rust.
+4. **Documentation gaps**: None. v6.6.0 full documentation sync complete.
 
 ## 🏗 Key Accomplishments in this Session:
-1.  **Adaptive Spectral Balancing**: Implemented real-time frequency clash detection. The engine now dips the bass or highs of the outgoing track automatically if it detects overlap with the incoming track.
-2.  **Dynamic Energy Mastering**: Integrated a heuristic that scales compression intensity based on set energy. High-energy sets preserve transients; ambient sets get more "warmth" and "body".
-3.  **UI/UX Overhaul**: Updated the Command Console with toggles for the new Adaptive features and verified the layout via automated Playwright visual checks.
-4.  **Operational Sync**: Synchronized the entire repository (docs, metadata, versioning) across 15+ files.
+1.  **Intelligent Phrase Looping**: Added `identify_loopable_phrase` to analysis module.
+2.  **Tail Extension**: Integrated auto-looping into the parallel mixing pipeline. Transitions no longer truncate for short tracks.
+3.  **UI Feedback**: Updated the rationale display to show `[Loop-Extended]` when a track is autonomously lengthened.
+4.  **Performance Metrics**: Integrated a parallelism monitor into the Web Dashboard.
+5.  **Documentation Synchronization**: Updated 10+ files to v6.6.0, following the "Extreme Operational Standard".
 
 ## 🧠 Memory for the Next Agent:
-- **Archetypes**: The `spectral_balance` archetype is now the default for `auto` mode when enabled.
-- **Fidelity**: Always maintain the float-domain pipeline. Never truncate to 16-bit until the final export.
-- **Directives**: The `GLOBAL_LLM_DIRECTIVE.md` is the absolute source of truth.
+- **Looping**: Looping is triggered automatically if `ms_trans > len(prev_nxt)`.
+- **Parallelism**: We use `ProcessPoolExecutor`. Avoid nesting pools.
+- **Directives**: Follow `GLOBAL_LLM_DIRECTIVE.md` with absolute priority.
 
-## 🚀 The Next Frontier:
-- [ ] **AI Genre Inference (CNN)**: Replace current heuristics with a deep learning model for 99% accuracy.
-- [ ] **Real-time VST Hosting**: Allow the engine to host external pro-audio plugins for mixing.
-- [ ] **Distributed Rendering**: Scale to multi-node clusters for hour-long lossless sets.
+## 🚀 The Next Frontier (v6.7.0+):
+- [ ] **AI Genre Inference (CNN)**: Deep learning for style detection.
+- [ ] **VST Host Integration**: Pro-audio plugin support.
+- [ ] **Distributed Multi-Node Rendering**: Cloud-scale set compilation.
 
 ---
 *Magnificent! Extraordinary! Insanely Great! The Party Never Stops.*
