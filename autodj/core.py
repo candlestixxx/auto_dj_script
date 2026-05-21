@@ -72,7 +72,7 @@ def analyze_track_worker(f):
     """Metadata extraction worker."""
     try:
         y, sr = librosa.load(f, sr=None)
-        bpm, _, _ = get_native_bpm(y, sr)
+        bpm, y, sr = get_native_bpm(y, sr)
         return {
             'path': f,
             'bpm': bpm,
@@ -162,37 +162,39 @@ def compile_master_set(args, status_obj=None):
     with ProcessPoolExecutor() as executor:
         warped_results = list(tqdm(executor.map(warp_worker, warp_tasks), total=num_tracks, desc="Warping", unit="track"))
 
-    # Phase 3: Mixing (75-100%)
-    if status_obj: status_obj["status"] = "Mixing Master Stream"
-    tracklist, master, current_time_ms = [], None, 0
+    # Phase 3: Parallel Mixing (75-95%)
+    if status_obj: status_obj["status"] = "Pre-calculating Transition Geometry"
+    tracklist, audio_chunks, current_time_ms = [], [], 0
+    render_tasks = []
 
+    # 3.1 Pre-analyze all transitions to build parallel task list
+    processed_tracks = []
     for i in range(num_tracks):
         y_w, sr = warped_results[i]
         if y_w is None: continue
-
         path = f"scratch_{i}_{os.getpid()}.wav"
         sf.write(path, y_w.T, sr, format='WAV', subtype='PCM_16')
         nxt = trim_silence(AudioSegment.from_wav(path))
         os.remove(path)
+        processed_tracks.append((nxt, y_w, sr))
 
-        if master is None:
-            master = nxt
+    for i in range(num_tracks):
+        nxt, y_w, sr = processed_tracks[i]
+
+        if i == 0:
+            audio_chunks.append(nxt) # Initial track start
             tracklist.append({'timestamp': "00:00:00", 'file': os.path.basename(all_files[i]), 'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})", 'genre': meta_list[i]['genre'], 'start_ms': 0})
-            current_time_ms = len(master)
+            current_time_ms = len(nxt)
             continue
 
+        prev_nxt, prev_y_w, _ = processed_tracks[i-1]
         t_s_bpm = start_bpm + (end_bpm - start_bpm) * (i / num_tracks)
 
-        # Dynamic Transition Logic
         t_bars = args.transition_bars
-        if getattr(args, 'dynamic_transitions', False) and i > 0:
-            # Load previous track for analysis if available
-            prev_y_w, _ = warped_results[i-1]
-            if prev_y_w is not None:
-                t_bars = calculate_dynamic_transition(prev_y_w, y_w, sr, t_s_bpm, args.beats_per_bar)
+        if getattr(args, 'dynamic_transitions', False):
+            t_bars = calculate_dynamic_transition(prev_y_w, y_w, sr, t_s_bpm, args.beats_per_bar)
 
         beats, ms_trans = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, t_bars)
-
         ph = detect_phrases(y_w, sr)
         fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)]
         ideal_p = fixed_p
@@ -200,18 +202,15 @@ def compile_master_set(args, status_obj=None):
             cl = ph[np.argmin(np.abs(ph - fixed_p))]
             if abs(cl - fixed_p) < config.PHRASE_ANCHOR_TOLERANCE_MS: ideal_p = cl
 
-        ms_trans = min(ms_trans, len(master))
+        ms_trans = min(ms_trans, len(prev_nxt))
         track_start_ms = current_time_ms - ms_trans
 
-        # Plugin-based Archetype Logic
+        # Archetype Selection
         mode = getattr(args, 'archetype', 'auto')
         rationale = "User manual override"
-
         if mode == 'auto':
-            # Intelligent Selection Heuristic
             t1, t2 = meta_list[i-1], meta_list[i]
             e_diff = t2['energy'] - t1['energy']
-
             if getattr(args, 'adaptive_spectral_balancing', True):
                 mode, rationale = 'spectral_balance', "Adaptive Spectral Balancing active"
             elif t2['genre'] == 'High-Energy' and e_diff >= -0.02:
@@ -234,29 +233,43 @@ def compile_master_set(args, status_obj=None):
             'rationale': rationale
         })
 
+        # Chop previous chunk to end at transition start
+        # The previous chunk was the full 'nxt' of track i-1
+        audio_chunks[-1] = audio_chunks[-1][:-ms_trans]
+
+        # Add transition render task
+        m_outro = pydub_to_ndarray(prev_nxt[-ms_trans:])
+        n_intro = pydub_to_ndarray(nxt[:ideal_p])
+        dsp_kwargs = {'lowpass': getattr(args, 'lowpass', config.LOWPASS_CUTOFF), 'highpass': getattr(args, 'highpass', config.HIGHPASS_CUTOFF)}
+        render_tasks.append((m_outro, n_intro, sr, mode, ms_trans, ideal_p, dsp_kwargs))
+
+        # Add the body of the new track
+        audio_chunks.append(None) # Placeholder for transition
+        audio_chunks.append(nxt[ideal_p:])
+        current_time_ms = track_start_ms + ms_trans + len(nxt[ideal_p:])
+
+    # 3.2 Execute Parallel Rendering
+    if status_obj: status_obj["status"] = f"Parallel Rendering {len(render_tasks)} Transitions"
+    with ProcessPoolExecutor() as executor:
+        transition_results = list(tqdm(executor.map(transition_render_worker, render_tasks), total=len(render_tasks), desc="Mixing", unit="trans"))
+
+    # 3.3 Stitch the final stream
+    if status_obj: status_obj["status"] = "Stitching Master Stream"
+    master = None
+    trans_idx = 0
+    for chunk in audio_chunks:
+        if chunk is None:
+            # Replace placeholder with rendered transition
+            raw_y, sr = transition_results[trans_idx]
+            chunk = ndarray_to_pydub(raw_y, sr)
+            trans_idx += 1
+
+        if master is None: master = chunk
+        else: master += chunk
+
         if status_obj:
             status_obj["tracklist"] = tracklist
-            status_obj["progress"] = 75 + int((i / (num_tracks-1)) * 25)
-
-        m_body, m_outro = master[:-ms_trans], master[-ms_trans:]
-        n_intro, n_body = nxt[:ideal_p], nxt[ideal_p:]
-
-        arch_plugin = ArchetypeRegistry.get(mode)
-        if arch_plugin:
-            f_m_raw, f_n_raw = arch_plugin.apply(
-                pydub_to_ndarray(m_outro),
-                pydub_to_ndarray(n_intro),
-                sr,
-                lowpass=getattr(args, 'lowpass', config.LOWPASS_CUTOFF),
-                highpass=getattr(args, 'highpass', config.HIGHPASS_CUTOFF)
-            )
-            f_m, f_n = ndarray_to_pydub(f_m_raw, sr), ndarray_to_pydub(f_n_raw, sr)
-        else:
-            # Fallback to no-processing overlay
-            f_m, f_n = m_outro, n_intro
-
-        master = m_body + f_m.fade_out(ms_trans).overlay(f_n.fade_in(ms_trans)) + n_body
-        current_time_ms = len(master)
+            status_obj["progress"] = 80 + int((trans_idx / max(1, len(transition_results))) * 15)
 
     if master:
         # Apply Multi-band Compression for final mastering
@@ -320,6 +333,28 @@ def compile_master_set(args, status_obj=None):
         with open(tl_path, "w") as f:
             f.write(f"Auto DJ v{__version__} Master Tracklist\n{'='*40}\n")
             for item in tracklist: f.write(f"[{item['timestamp']}] {item['file']} ({item['key']}) [{item['genre']}]\n")
+
+def transition_render_worker(args):
+    """Parallel worker for rendering a single transition overlap."""
+    outro_raw, intro_raw, sr, mode, ms_trans, ideal_p, dsp_kwargs = args
+    try:
+        arch_plugin = ArchetypeRegistry.get(mode)
+        if arch_plugin:
+            f_m_raw, f_n_raw = arch_plugin.apply(
+                outro_raw,
+                intro_raw,
+                sr,
+                **dsp_kwargs
+            )
+            f_m, f_n = ndarray_to_pydub(f_m_raw, sr), ndarray_to_pydub(f_n_raw, sr)
+        else:
+            f_m, f_n = ndarray_to_pydub(outro_raw, sr), ndarray_to_pydub(intro_raw, sr)
+
+        # Apply fades and overlay
+        rendered = f_m.fade_out(ms_trans).overlay(f_n.fade_in(ms_trans))
+        return pydub_to_ndarray(rendered), sr
+    except Exception as e:
+        return None, str(e)
 
 def ms_to_timestamp(ms):
     s = int((ms / 1000) % 60)

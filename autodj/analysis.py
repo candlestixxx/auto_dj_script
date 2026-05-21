@@ -52,7 +52,7 @@ def get_native_bpm(y, sr):
     native_bpm, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr)
     if isinstance(native_bpm, np.ndarray): native_bpm = native_bpm[0]
     if native_bpm < 100: native_bpm *= 2
-    return native_bpm, y, sr
+    return float(native_bpm), y, sr
 
 def get_energy_profile(y, sr):
     """Calculates RMS energy."""

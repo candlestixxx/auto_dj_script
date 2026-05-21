@@ -23,6 +23,7 @@
 - [x] **Genre-Aware Mastering Profiles**: Automatic dynamics tailoring.
 - [x] **Adaptive Spectral Balancing**: Real-time clash detection (v6.4.0).
 - [x] **Dynamic Energy Mastering**: Profile-based intensity scaling (v6.4.0).
+- [x] **Segmented Parallel Mixing**: Multi-core transition rendering (v6.5.0).
 - [ ] **Distributed Rendering**: Multi-node set compilation.
 - [ ] **AI Genre Evolution**: Deep Learning (CNN) for style inference.
 - [ ] **VST Host Integration**: Support for pro-audio plugins.

@@ -38,12 +38,24 @@
         <div class="progress-track"><div class="progress-fill" id="fill"></div></div>
 
         <div class="grid">
-            <div class="log-area" id="terminal">
-                [SYSTEM] Kernel v{{ version }} active...<br>
-                [SYSTEM] Parallel Warp Engine standing by...<br>
-                [MIR] CQT Key Detection loaded.<br>
-                [DSP] True-Peak Look-ahead Limiter online.<br>
-                [SYSTEM] WebSocket connecting...
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div class="log-area" id="terminal" style="height: 350px;">
+                    [SYSTEM] Kernel v{{ version }} active...<br>
+                    [SYSTEM] Parallel Warp Engine standing by...<br>
+                    [MIR] CQT Key Detection loaded.<br>
+                    [DSP] True-Peak Look-ahead Limiter online.<br>
+                    [SYSTEM] WebSocket connecting...
+                </div>
+                <div style="background: #000; border-radius: 10px; padding: 15px; border: 1px solid #111; font-size: 0.8em; color: #888;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>CPU PARALLELISM</span>
+                        <span id="perf-cores" style="color: #00ffcc; font-weight: 800;">ACTIVE</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>SEGMENTED RENDER ENGINE</span>
+                        <span style="color: #a020f0; font-weight: 800;">ENABLED</span>
+                    </div>
+                </div>
             </div>
             <div class="controls-card">
                 <form id="launch-form">
