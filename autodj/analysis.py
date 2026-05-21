@@ -47,32 +47,74 @@ def is_harmonically_compatible(key1, key2):
     return False
 
 def get_native_bpm(y, sr):
-    """Detects BPM with octave correction."""
-    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
-    native_bpm, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr)
-    if isinstance(native_bpm, np.ndarray): native_bpm = native_bpm[0]
-    if native_bpm < 100: native_bpm *= 2
-    return float(native_bpm), y, sr
+    """Detects BPM using multiple windows and a voting system for high accuracy."""
+    # Ensure y is mono for analysis
+    if y.ndim == 2:
+        y_mono = librosa.to_mono(y)
+    else:
+        y_mono = y
+        
+    duration = librosa.get_duration(y=y_mono, sr=sr)
+    
+    # Analyze 4 distinct 20-second windows
+    window_sec = 20.0
+    offsets = [duration * 0.15, duration * 0.35, duration * 0.55, duration * 0.75]
+    
+    bpms = []
+    for offset in offsets:
+        start_sample = int(offset * sr)
+        end_sample = min(len(y_mono), int((offset + window_sec) * sr))
+        chunk = y_mono[start_sample:end_sample]
+        
+        if len(chunk) < sr * 5: continue
+            
+        onset_env = librosa.onset.onset_strength(y=chunk, sr=sr)
+        # Narrow the search range for Psytrance (typically 130-155)
+        # but allow for faster/slower tracks
+        tempo, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, start_bpm=140)
+        
+        if isinstance(tempo, np.ndarray): tempo = tempo[0]
+        bpms.append(float(tempo))
+
+    if not bpms:
+        return 140.0, y, sr
+
+    # Enhanced Correction Logic
+    corrected_bpms = []
+    for b in bpms:
+        # Fix 1/2 or 2x errors
+        while b < 110: b *= 2
+        while b > 175: b /= 2
+        corrected_bpms.append(b)
+        
+    final_bpm = float(np.median(corrected_bpms))
+    print(f"  [ANALYSIS] Detected BPMs: {bpms} -> Final: {final_bpm:.2f}")
+    return final_bpm, y, sr
+
 
 def get_energy_profile(y, sr):
     """Calculates RMS energy."""
-    return np.mean(librosa.feature.rms(y=y))
+    y_mono = librosa.to_mono(y) if y.ndim == 2 else y
+    return np.mean(librosa.feature.rms(y=y_mono))
 
 def detect_phrases(y, sr):
-    """Detects structural boundaries using spectral novelty peaks."""
-    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+    """Detects structural boundaries using spectral novelty peaks. Handles stereo input."""
+    y_mono = librosa.to_mono(y) if y.ndim == 2 else y
+    onset_env = librosa.onset.onset_strength(y=y_mono, sr=sr)
     boundaries = librosa.util.peak_pick(onset_env, pre_max=30, post_max=30, pre_avg=30, post_avg=30, delta=0.5, wait=30)
     return (librosa.frames_to_time(boundaries, sr=sr) * 1000).astype(int)
 
 def analyze_geometry(segment, sr, target_bpm, beats_per_bar, transition_bars):
     """Calculates millisecond offsets for track segmentation and mixing."""
     samples = pydub_to_ndarray(segment)
-    if segment.channels == 2:
-        samples = librosa.to_mono(samples)
+    # samples is already forced to (2, N) by pydub_to_ndarray
+    samples_mono = librosa.to_mono(samples)
+    
     ms_per_beat = 60000.0 / target_bpm
     ms_per_bar = ms_per_beat * beats_per_bar
     ms_per_transition = ms_per_bar * transition_bars
-    onset_env = librosa.onset.onset_strength(y=samples, sr=sr)
+    
+    onset_env = librosa.onset.onset_strength(y=samples_mono, sr=sr)
     _, beat_frames = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, start_bpm=target_bpm)
     beat_times_ms = (librosa.frames_to_time(beat_frames, sr=sr) * 1000).astype(int)
     return beat_times_ms, int(ms_per_transition)
@@ -80,7 +122,6 @@ def analyze_geometry(segment, sr, target_bpm, beats_per_bar, transition_bars):
 def calculate_dynamic_transition(outro_y, intro_y, sr, target_bpm, beats_per_bar):
     """
     Analyzes phrase structure to determine optimal transition length.
-
     Returns transition bars (8, 16, or 32).
     """
     outro_ph = detect_phrases(outro_y, sr)
@@ -102,48 +143,44 @@ def calculate_dynamic_transition(outro_y, intro_y, sr, target_bpm, beats_per_bar
 def identify_loopable_phrase(y, sr, bpm, beats_per_bar=4):
     """
     Finds the most rhythmically stable 1-bar or 2-bar phrase for looping.
-    Used for tail extension during transitions.
+    Used for tail extension during transitions. Handles stereo.
     """
     ms_per_beat = 60000.0 / bpm
     ms_per_bar = ms_per_beat * beats_per_bar
     samples_per_bar = int(sr * (ms_per_bar / 1000.0))
 
-    # Focus on the last 30 seconds for outro loops
-    last_30_s = y[-int(sr * 30):] if len(y) > sr * 30 else y
+    # Focus on the last 30 seconds for outro loops. Slicing on time axis.
+    if y.ndim == 2:
+        last_30_s = y[:, -int(sr * 30):] if y.shape[1] > sr * 30 else y
+        last_30_s_mono = librosa.to_mono(last_30_s)
+    else:
+        last_30_s = y[-int(sr * 30):] if len(y) > sr * 30 else y
+        last_30_s_mono = last_30_s
 
     # Simple rhythmic similarity: find segments with similar energy envelopes
-    onset_env = librosa.onset.onset_strength(y=last_30_s, sr=sr)
+    onset_env = librosa.onset.onset_strength(y=last_30_s_mono, sr=sr)
 
     # Heuristic: find a high-energy bar near the end
-    # (In a future version, use cross-correlation for sample-accurate loop points)
+    if y.ndim == 2:
+        return last_30_s[:, -samples_per_bar:]
     return last_30_s[-samples_per_bar:]
 
 def get_genre_archetype(y, sr, bpm=None):
     """
     Identifies the genre archetype using a multi-feature heuristic (v3 - Enhanced).
-
-    Heuristic Logic:
-    - High-Energy: BPM > 138 AND (Centroid > 2500 OR Rolloff > 5000).
-    - Techno: 120 < BPM <= 140 AND Contrast > 20.
-    - House: 105 < BPM <= 128 AND Flatness > 0.01.
-    - Ambient: BPM <= 105 OR Centroid <= 1000.
-
-    New Features in v3:
-    - MFCC: Mean of first 13 coefficients for timbre density.
-    - Spectral Contrast: Measures the energy difference between peaks and valleys.
     """
-    centroid = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))
-    rolloff = np.mean(librosa.feature.spectral_rolloff(y=y, sr=sr))
-    flatness = np.mean(librosa.feature.spectral_flatness(y=y))
-    mfcc = np.mean(librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13), axis=1)
-    contrast = np.mean(librosa.feature.spectral_contrast(y=y, sr=sr))
+    y_mono = librosa.to_mono(y) if y.ndim == 2 else y
+    centroid = np.mean(librosa.feature.spectral_centroid(y=y_mono, sr=sr))
+    rolloff = np.mean(librosa.feature.spectral_rolloff(y=y_mono, sr=sr))
+    flatness = np.mean(librosa.feature.spectral_flatness(y=y_mono))
+    mfcc = np.mean(librosa.feature.mfcc(y=y_mono, sr=sr, n_mfcc=13), axis=1)
+    contrast = np.mean(librosa.feature.spectral_contrast(y=y_mono, sr=sr))
 
     if bpm is None:
         if centroid > 3000 or rolloff > 6000: return 'High-Energy'
         if contrast > 20: return 'Techno'
         return 'Ambient'
 
-    # v3 Logic Path
     if bpm > 138:
         if centroid > 2500 or rolloff > 5000 or mfcc[0] > -100:
             return 'High-Energy'
@@ -159,7 +196,6 @@ def get_genre_archetype(y, sr, bpm=None):
     if bpm <= 105 or centroid <= 1100:
         return 'Ambient'
 
-    # Timbre-based fallback
     if mfcc[0] > -150: return 'High-Energy'
     if contrast > 18: return 'Techno'
     return 'Ambient'
