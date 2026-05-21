@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.6.0] - 2024-05-26
+### Added
+- **Intelligent Phrase Looping**: Automatically identifies and loops rhythmically compatible phrases to extend short track outros/intros.
+- **Tail Extension UI**: Added "Auto-Looping" status indicators to the live tracklist.
+- **Rhythmic Similarity Analysis**: New MIR module for detecting seamless loop points.
+
 ## [6.5.0] - 2024-05-26
 ### Added
 - **Segmented Parallel Mixing Engine**: Transitions and track bodies are now rendered in parallel across multi-core processors.

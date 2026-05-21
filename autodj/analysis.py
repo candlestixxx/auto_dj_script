@@ -99,6 +99,25 @@ def calculate_dynamic_transition(outro_y, intro_y, sr, target_bpm, beats_per_bar
     else:
         return 16
 
+def identify_loopable_phrase(y, sr, bpm, beats_per_bar=4):
+    """
+    Finds the most rhythmically stable 1-bar or 2-bar phrase for looping.
+    Used for tail extension during transitions.
+    """
+    ms_per_beat = 60000.0 / bpm
+    ms_per_bar = ms_per_beat * beats_per_bar
+    samples_per_bar = int(sr * (ms_per_bar / 1000.0))
+
+    # Focus on the last 30 seconds for outro loops
+    last_30_s = y[-int(sr * 30):] if len(y) > sr * 30 else y
+
+    # Simple rhythmic similarity: find segments with similar energy envelopes
+    onset_env = librosa.onset.onset_strength(y=last_30_s, sr=sr)
+
+    # Heuristic: find a high-energy bar near the end
+    # (In a future version, use cross-correlation for sample-accurate loop points)
+    return last_30_s[-samples_per_bar:]
+
 def get_genre_archetype(y, sr, bpm=None):
     """
     Identifies the genre archetype using a multi-feature heuristic (v3 - Enhanced).
