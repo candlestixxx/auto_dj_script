@@ -46,30 +46,48 @@ def get_semitone_diff(key1, key2):
 
 
 def dynamic_warp(y, sr, native_bpm, start_target_bpm, end_target_bpm):
-    """Phase Vocoder based time-stretching with intra-track BPM ramping."""
-    if abs(start_target_bpm - end_target_bpm) < 0.01:
-        return librosa.effects.time_stretch(y, rate=start_target_bpm / native_bpm)
-    duration_sec = len(y) / sr
-    num_chunks = max(1, int(duration_sec))
-    chunks = np.array_split(y, num_chunks)
-    warped_chunks = []
-    for i, chunk in enumerate(chunks):
-        target_bpm = start_target_bpm + (end_target_bpm - start_bpm) * (i / num_chunks)
-        rate = target_bpm / native_bpm
-        warped_chunks.append(librosa.effects.time_stretch(chunk, rate=rate))
-    return np.concatenate(warped_chunks)
+    """Rubber Band based time-stretching. Processes entire track to preserve phase/transients."""
+    def rb_stretch(data, rate):
+        import tempfile, subprocess
+        # Force stereo if mono
+        if data.ndim == 1:
+            data = np.vstack([data, data])
+        
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fin, \
+             tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fout:
+            sf.write(fin.name, data.T, sr, format='WAV', subtype='PCM_16')
+            fin.close(); fout.close()
+            ratio = 1.0 / rate
+            subprocess.run(["rubberband", "--quiet", "--tempo", str(ratio), fin.name, fout.name], check=True)
+            out_y, _ = librosa.load(fout.name, sr=sr, mono=False)
+            os.remove(fin.name); os.remove(fout.name)
+            # Ensure return is always stereo (2, samples)
+            if out_y.ndim == 1:
+                out_y = np.vstack([out_y, out_y])
+            return out_y
+
+    # For now, we use the average target BPM to avoid the muddiness caused by chunking.
+    # True intra-track ramping requires specialized DSP that isn't stable via CLI chunking.
+    avg_target_bpm = (start_target_bpm + end_target_bpm) / 2.0
+    rate = avg_target_bpm / native_bpm
+    print(f"  [WARP] Rate: {rate:.4f} ({native_bpm:.1f} -> {avg_target_bpm:.1f})")
+    return rb_stretch(y, rate)
 
 
 def warp_worker(args):
     """Thread worker for track preparation (time-stretch, pitch-shift, normalize)."""
     path, native_bpm, s_bpm, e_bpm, cur_key, tar_key, sync = args
     try:
-        y, sr = librosa.load(path, sr=None)
+        # Force mono=False to preserve stereo image
+        y, sr = librosa.load(path, sr=None, mono=False)
         y_w = dynamic_warp(y, sr, native_bpm, s_bpm, e_bpm)
+        
+        # Pitch shifting (if enabled and harmonic distance is small)
         if sync and cur_key and tar_key:
             diff = get_semitone_diff(cur_key, tar_key)
             if 0 < abs(diff) <= 2:
                 y_w = librosa.effects.pitch_shift(y_w, sr=sr, n_steps=diff)
+        
         y_w = apply_limiter(normalize_lufs(y_w, sr, config.TARGET_LUFS))
         return y_w, sr
     except Exception as e:
@@ -78,9 +96,18 @@ def warp_worker(args):
 
 
 def analyze_track_worker(f):
-    """Metadata extraction worker."""
+    """Metadata extraction worker with enhanced Psy-trance BPM detection."""
     try:
-        native_bpm, y, sr = get_native_bpm(f)
+        # Use mono for analysis
+        y, sr = librosa.load(f, sr=None, mono=True)
+        native_bpm, _, _ = get_native_bpm(y, sr)
+        
+        # Heuristic: Psy-trance is rarely below 130 or above 160.
+        # If we detect 190+, it's likely a 1.5x detection error of ~126-130.
+        # If we detect < 100, it's a 0.5x error.
+        if native_bpm > 180: native_bpm /= 1.5
+        if native_bpm < 90: native_bpm *= 2
+        
         return {
             'path': f,
             'bpm': native_bpm,
@@ -203,7 +230,7 @@ def compile_master_set(args, status_obj=None):
     if status_obj:
         status_obj["status"] = "Mixing Master Stream"
 
-    tracklist, master, current_time_ms = [], None, 0
+    tracklist, master, processed_tracks, current_time_ms = [], None, [], 0
     for i in range(num_tracks):
         y_w, sr = warped_results[i]
         if y_w is None:
@@ -226,7 +253,7 @@ def compile_master_set(args, status_obj=None):
 
         prev_nxt, prev_y_w, _ = processed_tracks[i-1]
         t_s_bpm = start_bpm + (end_bpm - start_bpm) * (i / num_tracks)
-        beats, ms_trans = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
+        beats, theoretical_ms_trans = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
         ph = detect_phrases(y_w, sr)
 
         fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)]
@@ -235,6 +262,9 @@ def compile_master_set(args, status_obj=None):
             cl = ph[np.argmin(np.abs(ph - fixed_p))]
             if abs(cl - fixed_p) < config.PHRASE_ANCHOR_TOLERANCE_MS:
                 ideal_p = cl
+
+        # Phrasing Fix: The overlay duration MUST match the snapped intro length
+        ms_trans = ideal_p
 
         # Intelligent Tail Extension (v6.6.0)
         ext_rationale = ""
@@ -245,7 +275,7 @@ def compile_master_set(args, status_obj=None):
             prev_nxt += ndarray_to_pydub(ext_segment, sr)
             ext_rationale = " [Loop-Extended]"
 
-        ms_trans = min(ms_trans, len(prev_nxt))
+        ms_trans = min(ms_trans, len(master))
         track_start_ms = current_time_ms - ms_trans
 
         tracklist.append({'timestamp': ms_to_timestamp(track_start_ms), 'file': os.path.basename(all_files[i]),
