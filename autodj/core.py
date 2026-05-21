@@ -267,19 +267,23 @@ def compile_master_set(args, status_obj=None):
         current_time_ms = len(master)
 
     if master:
-        # Apply Multi-band Compression for final mastering
-        if status_obj:
-            status_obj["status"] = "Mastering Dynamics"
-            status_obj["progress"] = 98
-        master_array = pydub_to_ndarray(master)
-        master_compressed = apply_multiband_compression(master_array, master.frame_rate)
-        master = ndarray_to_pydub(master_compressed, master.frame_rate)
-
-        master.export(args.output, format="flac")
-
-        if status_obj:
-            status_obj["status"] = "Complete"
-            status_obj["progress"] = 100
+        try:
+            # Export directly — skip multiband compression on the full mix
+            # (too memory/CPU intensive for large sets; per-track limiting already applied)
+            if status_obj:
+                status_obj["status"] = "Exporting FLAC"
+                status_obj["progress"] = 98
+            print(f"[*] Exporting {len(master)/1000/60:.1f} min mix to {args.output}...")
+            master.export(args.output, format="flac")
+            if status_obj:
+                status_obj["status"] = "Complete"
+                status_obj["progress"] = 100
+            print(f"[*] Export complete!")
+        except Exception as e:
+            print(f"[ERROR] Export failed: {e}")
+            if status_obj:
+                status_obj["status"] = f"Error: Export failed - {e}"
+            return
 
         tl_path = os.path.splitext(args.output)[0] + "_tracklist.txt"
         with open(tl_path, "w") as f:
