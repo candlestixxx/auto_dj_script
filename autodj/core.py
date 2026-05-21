@@ -22,7 +22,8 @@ from .analysis import (
 from .dsp import (
     apply_dsp_filter, trim_silence, normalize_lufs,
     apply_bass_swap, apply_echo_out, apply_hpf_sweep,
-    apply_limiter, apply_multiband_compression
+    apply_limiter, apply_multiband_compression,
+    apply_s_curve_fade
 )
 from .utils import pydub_to_ndarray, ndarray_to_pydub
 from .version import __version__
@@ -192,6 +193,9 @@ def compile_master_set(args, status_obj=None):
         print("[ERROR] No audio files found in input folder.")
         return
 
+    # Deduplicate files (On Windows, globbing *.flac and *.FLAC returns same files)
+    all_files = list(set(os.path.abspath(f) for f in all_files))
+    
     # Phase 1: Analysis (0-50%)
     all_files, meta_list = find_optimal_order(all_files, status_obj=status_obj)
 
@@ -288,20 +292,27 @@ def compile_master_set(args, status_obj=None):
 
         # Archetype Selection Logic
         mode = getattr(args, 'archetype', 'auto')
-        if mode == 'bass_swap' or (mode == 'auto' and meta_list[i]['genre'] == 'High-Energy'):
-            f_m_h, f_n_l = apply_bass_swap(pydub_to_ndarray(m_outro), pydub_to_ndarray(n_intro), sr)
-            f_m, f_n = ndarray_to_pydub(f_m_h, sr), ndarray_to_pydub(f_n_l, sr)
-        elif mode == 'echo_out':
-            f_m = ndarray_to_pydub(apply_echo_out(pydub_to_ndarray(m_outro), sr), sr)
-            f_n = ndarray_to_pydub(pydub_to_ndarray(n_intro), sr)
-        elif mode == 'hpf_sweep':
-            f_m = ndarray_to_pydub(apply_hpf_sweep(pydub_to_ndarray(m_outro), sr), sr)
-            f_n = ndarray_to_pydub(pydub_to_ndarray(n_intro), sr)
-        else:  # Classic Fade
-            f_m = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(m_outro), sr, 'lowpass', args.lowpass), sr)
-            f_n = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(n_intro), sr, 'highpass', args.highpass), sr)
+        if mode == 'auto' and meta_list[i]['genre'] == 'High-Energy':
+            mode = 'progressive' # Professional default for Psytrance
+            
+        arch_plugin = ArchetypeRegistry.get(mode)
+        if arch_plugin:
+            dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass}
+            f_m_raw, f_n_raw = arch_plugin.apply(pydub_to_ndarray(m_outro), pydub_to_ndarray(n_intro), sr, **dsp_kwargs)
+            f_m, f_n = ndarray_to_pydub(f_m_raw, sr), ndarray_to_pydub(f_n_raw, sr)
+        else:
+             # Classic Fallback
+             f_m = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(m_outro), sr, 'lowpass', args.lowpass), sr)
+             f_n = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(n_intro), sr, 'highpass', args.highpass), sr)
 
-        master = m_body + f_m.fade_out(ms_trans).overlay(f_n.fade_in(ms_trans)) + n_body
+        # Master Mixing with S-Curve Fades
+        f_m_s = apply_s_curve_fade(pydub_to_ndarray(f_m), fade_type='out')
+        f_n_s = apply_s_curve_fade(pydub_to_ndarray(f_n), fade_type='in')
+        
+        f_m_final = ndarray_to_pydub(f_m_s, sr)
+        f_n_final = ndarray_to_pydub(f_n_s, sr)
+        
+        master = m_body + f_m_final.overlay(f_n_final) + n_body
         current_time_ms = len(master)
 
     if master:
