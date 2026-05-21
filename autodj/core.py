@@ -306,12 +306,12 @@ def compile_master_set(args, status_obj=None):
              f_m = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(m_outro), sr, 'lowpass', args.lowpass), sr)
              f_n = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(n_intro), sr, 'highpass', args.highpass), sr)
 
-        # Master Mixing with S-Curve Fades
-        f_m_s = apply_s_curve_fade(pydub_to_ndarray(f_m), fade_type='out')
-        f_n_s = apply_s_curve_fade(pydub_to_ndarray(f_n), fade_type='in')
+        # Master Mixing with Logarithmic (Equal Power) Fades
+        f_m_log = apply_log_fade(pydub_to_ndarray(f_m), fade_type='out')
+        f_n_log = apply_log_fade(pydub_to_ndarray(f_n), fade_type='in')
         
-        f_m_final = ndarray_to_pydub(f_m_s, sr)
-        f_n_final = ndarray_to_pydub(f_n_s, sr)
+        f_m_final = ndarray_to_pydub(f_m_log, sr)
+        f_n_final = ndarray_to_pydub(f_n_log, sr)
         
         master = m_body + f_m_final.overlay(f_n_final) + n_body
         current_time_ms = len(master)
