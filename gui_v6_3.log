@@ -13,3 +13,16 @@ INFO:     127.0.0.1:54160 - "GET / HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54166 - "WebSocket /ws" [accepted]
 INFO:     connection open
 INFO:     connection closed
+INFO:     127.0.0.1:42474 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42490 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:57372 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44544 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44548 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2128453]

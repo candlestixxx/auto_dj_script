@@ -1,49 +1,39 @@
-# 🤝 Auto DJ Script: Transition & Handoff Brief (v6.3.0)
+# 🤝 Auto DJ Script: Transition & Handoff Brief (v6.4.0)
 
-## 🎖 Current Status: "The Broadcast & Intelligence Era"
-The project is in a highly stable, modular, and performant state. We have transitioned from basic script-based mixing to a parallel, MIR-intelligent audio engine with a real-time web interface and live broadcasting capabilities.
-
-*Note: No previous conversation logs were found in the codebase. Model-specific instruction files (CLAUDE.md, GEMINI.md, GPT.md, copilot-instructions.md) were found in 'Model Instructions/' and updated to reference the global directive.*
+## 🎖 Current Status: "The Adaptive Audiophile Era"
+The project is at a pinnacle of autonomous audio engineering. With v6.4.0, we have moved beyond simple mixing into **Adaptive Intelligence**, where the engine resolves physical frequency clashes and adjusts mastering dynamics based on the set's energy profile.
 
 ## 🔎 Project Audit
-1. **Completed features:** High-performance metadata extraction, Simulated Annealing sequencing, Smart Phrase Detection, LUFS Mastering, Real-time Command Console (v5.0), true-peak limiting, manual archetype overrides, parallel warp engine, Multi-band Compression (3-band), Interactive Tempo Ramping (End BPM), AI Genre Inference (v3), Phrase-Aware Dynamic Transitions, Plugin-based Archetype Architecture, Intelligent Transition Selector, Auto-Gain Compensation, Live Broadcast Client (FFmpeg RTMP/Icecast).
-2. **Partially implemented features:** Dynamic mastering chain (now 3-band with genre-aware profiles).
-3. **Backend features not wired to the frontend:** None.
-4. **UI features that are missing, hidden, underrepresented, or unpolished:** Missing per-track waveform progress indicators in the live tracklist.
-5. **Bugs or fragile areas:** Fixed critical `get_native_bpm` signature mismatch and `prev_y_w` null check.
-6. **Refactor opportunities:** Porting DSP to Rust for performance.
-7. **Documentation gaps:** None. All project and model-specific instructions are synchronized.
-8. **Dependency/library/submodule gaps:** None. `LIB_VERSIONS.md` created.
-9. **Deployment/versioning gaps:** No deployment automation (e.g. Dockerfile).
+1. **Completed features:**
+   - **MIR/Analysis**: Parallel metadata extraction, SA sequencing, v3 Genre Inference (MFCC/Contrast), Phrase Detection.
+   - **DSP/Mixing**: 10th-order Butterworth filters, Plugin-based archetypes, Phrase-Aware Transitions, Intelligent Transition Selector, **Adaptive Spectral Balancing** (v6.4.0).
+   - **Mastering**: BS.1770-4 LUFS Normalization, 3-band Multiband Compression, Genre-Aware Profiles, **Dynamic Energy Mastering** (v6.4.0).
+   - **Broadcast/UI**: Command Console (FastAPI), Live WebSocket Telemetry, **Live Broadcast Client** (FFmpeg RTMP/Icecast).
+2. **Bugs or fragile areas:** Fixed `get_native_bpm` signature and `prev_y_w` null-pointers.
+3. **Refactor opportunities:** Porting core DSP (filtering/warping) to Rust for sub-millisecond latency.
+4. **Documentation gaps:** None. All project docs and model instructions are synchronized to v6.4.0 and the Global Directive.
 
-## 📚 Library Inventory (See Documentation/LIB_VERSIONS.md for details)
-- **librosa (v0.11.0):** Analysis/MIR.
-- **numpy (v2.4.6):** Math/Signal processing.
-- **pydub (v0.25.1):** High-level audio mechanics.
-- **soundfile (v0.13.1):** High-Fidelity I/O.
-- **scipy (v1.17.1):** Low-level DSP filters.
-- **fastapi (v0.136.1):** Web/GUI.
-- **websockets (v16.0):** Real-time telemetry.
-- **pyloudnorm (v0.2.0):** BS.1770-4 normalization.
+## 📚 Library Inventory (See Documentation/LIB_VERSIONS.md)
+- **librosa (v0.11.0):** MIR & Warping.
+- **numpy (v2.4.6):** Float-domain DSP.
+- **scipy (v1.17.1):** High-order filtering.
+- **pyloudnorm (v0.2.0):** BS.1770-4 compliance.
 
 ## 🏗 Key Accomplishments in this Session:
-1.  **Live Broadcasting (v6.3.0)**: Integrated an FFmpeg-based client for streaming rendered sets to RTMP/Icecast endpoints.
-2.  **Genre Intelligence (v6.2.0)**: Upgraded Genre Classification to v3 (MFCC/Contrast) and implemented **Genre-Aware Mastering Profiles** (Techno, House, Ambient, High-Energy).
-3.  **Intelligent Orchestration (v6.1.0)**: Implemented an energy-aware transition selector and auto-gain compensation.
-4.  **Plugin Architecture (v6.0.0)**: Refactored transitions into a modular plugin system.
-5.  **Robustness Fixes**: Resolved analysis unpacking errors and potential null-pointer crashes in the mixing loop.
+1.  **Adaptive Spectral Balancing**: Implemented real-time frequency clash detection. The engine now dips the bass or highs of the outgoing track automatically if it detects overlap with the incoming track.
+2.  **Dynamic Energy Mastering**: Integrated a heuristic that scales compression intensity based on set energy. High-energy sets preserve transients; ambient sets get more "warmth" and "body".
+3.  **UI/UX Overhaul**: Updated the Command Console with toggles for the new Adaptive features and verified the layout via automated Playwright visual checks.
+4.  **Operational Sync**: Synchronized the entire repository (docs, metadata, versioning) across 15+ files.
 
 ## 🧠 Memory for the Next Agent:
-- **Audio Fidelity**: Keep all internal processing in the float domain using NumPy.
-- **Camelot Logic**: Key sync is limited to +/- 2 semitones to prevent artifacts.
-- **Directives**: ALWAYS follow the `GLOBAL_LLM_DIRECTIVE.md`.
-- **Broadcasting**: Requires `ffmpeg` to be installed on the host system.
+- **Archetypes**: The `spectral_balance` archetype is now the default for `auto` mode when enabled.
+- **Fidelity**: Always maintain the float-domain pipeline. Never truncate to 16-bit until the final export.
+- **Directives**: The `GLOBAL_LLM_DIRECTIVE.md` is the absolute source of truth.
 
-## 📝 Session History (v6.3.0)
-- **Live Broadcast Client**: Added background FFmpeg streaming capability.
-- **Broadcast UI**: Integrated stream URL inputs into the Command Console.
-- **Bugfixes**: Resolved `get_native_bpm` unpacking mismatch and `prev_y_w` null check in transitions.
-- **Documentation**: Full sync of all project docs and model instructions.
+## 🚀 The Next Frontier:
+- [ ] **AI Genre Inference (CNN)**: Replace current heuristics with a deep learning model for 99% accuracy.
+- [ ] **Real-time VST Hosting**: Allow the engine to host external pro-audio plugins for mixing.
+- [ ] **Distributed Rendering**: Scale to multi-node clusters for hour-long lossless sets.
 
 ---
 *Magnificent! Extraordinary! Insanely Great! The Party Never Stops.*
