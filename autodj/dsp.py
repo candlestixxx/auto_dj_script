@@ -45,44 +45,32 @@ class ArchetypeRegistry:
 def apply_dsp_filter(audio_array, sr, filter_type='highpass', cutoff=150.0):
     """
     Applies a 4th-order Butterworth digital filter using Second-Order Sections (SOS).
-
-    Why 4th Order?
-    Standard DJ mixers often use 2nd or 4th order filters (24dB/octave). While
-    higher orders provide steeper roll-off, they introduce significant phase
-    distortion and "ringing" near the cutoff frequency, which can make the audio
-    sound "washed out" or hollow. 4th-order provides a great balance of isolation
-    and musical transparency.
-
-    Why SOS?
-    Second-order sections are more numerically stable than transfer function (ba)
-    representations, especially for high-order filters which can otherwise
-    suffer from precision errors in floating-point arithmetic.
+    Ensures input is always 2D (stereo) for consistency.
     """
     nyquist = 0.5 * sr
-    # Safety: Clamp cutoff within stable ranges
     cutoff = max(20.0, min(cutoff, nyquist - 100))
     normal_cutoff = cutoff / nyquist
     sos = butter(4, normal_cutoff, btype=filter_type, output='sos')
 
-    if audio_array.ndim == 2:
-        # Stereo processing: Apply filter to each channel independently
-        filtered_left = sosfilt(sos, audio_array[0])
-        filtered_right = sosfilt(sos, audio_array[1])
-        return np.vstack([filtered_left, filtered_right])
-    else:
-        return sosfilt(sos, audio_array)
+    # Force 2D for processing
+    is_1d = audio_array.ndim == 1
+    if is_1d:
+        audio_array = np.vstack([audio_array, audio_array])
 
-def trim_silence(segment, silence_threshold=-50.0, chunk_size=10):
+    filtered_left = sosfilt(sos, audio_array[0])
+    filtered_right = sosfilt(sos, audio_array[1])
+    out = np.vstack([filtered_left, filtered_right])
+    
+    return out[0] if is_1d else out
+
+def trim_silence(segment, silence_threshold=-65.0, chunk_size=10):
     """
-    Surgical silence removal for precise beat-alignment.
-
-    In DJing, 10ms of silence at the start of a track causes an immediate
-    beat-sync failure. This function iterates through chunks to find the exact
-    transient onset.
+    Surgical silence removal with a lower threshold to preserve melodic tails.
     """
     start_trim = 0
     while start_trim < len(segment) and segment[start_trim:start_trim+chunk_size].dBFS < silence_threshold:
         start_trim += chunk_size
+    ...
 
     end_trim = len(segment)
     while end_trim > start_trim and segment[end_trim-chunk_size:end_trim].dBFS < silence_threshold:
@@ -338,6 +326,26 @@ class SpectralBalancedMix(TransitionArchetype):
 
         return f_m, f_n
 
+def apply_log_fade(audio_array, fade_type='in'):
+    """
+    Applies a Logarithmic (Equal Power) fade to the audio array.
+    This maintains constant energy during crossfading, preventing volume dips.
+    """
+    if audio_array.ndim == 2:
+        num_samples = audio_array.shape[1]
+    else:
+        num_samples = len(audio_array)
+        
+    # Generate Equal Power curve: sqrt(x) for in, sqrt(1-x) for out
+    x = np.linspace(0, 1, num_samples)
+    
+    if fade_type == 'in':
+        curve = np.sqrt(x)
+    else:
+        curve = np.sqrt(1.0 - x)
+        
+    return audio_array * curve
+
 @ArchetypeRegistry.register
 class DualFilterSweep(TransitionArchetype):
     name = "progressive"
@@ -347,22 +355,27 @@ class DualFilterSweep(TransitionArchetype):
     def apply(outro_array, intro_array, sr, **kwargs):
         """
         Progressively builds the intro by sweeping filters.
-        Out track: Low-pass from 20kHz -> 200Hz
-        In track: High-pass from 15kHz -> 20Hz
+        Out track: Low-pass remains open longer, then dips.
+        In track: High-pass enters deep, then opens up.
         """
-        block_size = int(sr * 0.1)
-        num_blocks = (outro_array.shape[1] if outro_array.ndim == 2 else len(outro_array)) // block_size
+        total_samples = outro_array.shape[1] if outro_array.ndim == 2 else len(outro_array)
+        block_size = int(sr * 0.05) # Smaller blocks for smoother sweep
         
         f_m = np.copy(outro_array)
         f_n = np.copy(intro_array)
         
-        for b in range(num_blocks):
-            start, end = b * block_size, (b + 1) * block_size
-            progress = b / num_blocks
+        for start in range(0, total_samples, block_size):
+            end = min(total_samples, start + block_size)
+            progress = start / total_samples
             
-            # Outgoing: LP from 20000 -> 200
-            lp_freq = 20000 * (200 / 20000) ** progress
-            # Incoming: HP from 15000 -> 20
+            # Outgoing: LP remains open for first 30%, then sweeps down
+            if progress < 0.3:
+                lp_freq = 20000.0
+            else:
+                p_adj = (progress - 0.3) / 0.7
+                lp_freq = 20000 * (400 / 20000) ** p_adj
+                
+            # Incoming: HP sweeps down from 15k to 20 over the whole range
             hp_freq = 15000 * (20 / 15000) ** progress
             
             if outro_array.ndim == 2:
