@@ -1,8 +1,7 @@
-# 📝 Immediate Tasks (v6.4.0)
+# 📝 Immediate Tasks (v6.5.0)
 
 ## 🚀 Features (Immediate Implementation)
-- [x] **Adaptive Spectral Balancing**: Frequency clash detection.
-- [x] **Dynamic Energy Mastering**: Intensity scaling based on track metadata.
+- [x] **Segmented Parallel Mixing**: Multi-core rendering.
 
 ## 🛠 Improvements & Refactoring
 - [x] **Logarithmic SA Cooling**: Implement a more robust cooling schedule for large sets (>30 tracks).
