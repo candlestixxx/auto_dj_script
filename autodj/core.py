@@ -254,28 +254,39 @@ def compile_master_set(args, status_obj=None):
 
         prev_nxt, prev_y_w, _ = processed_tracks[i-1]
         t_s_bpm = start_bpm + (end_bpm - start_bpm) * (i / num_tracks)
-        beats, theoretical_ms_trans = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
+        beats, theoretical_ms_trans, first_beat_ms = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
         ph = detect_phrases(y_w, sr)
 
-        fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)]
-        ideal_p = fixed_p
+        # 1. Precise Phase Alignment (v6.8.1)
+        ms_per_beat = 60000.0 / t_s_bpm
+        ms_per_bar = ms_per_beat * args.beats_per_bar
+        
+        fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)] if len(beats) > 0 else theoretical_ms_trans
+        ideal_p = max(100, fixed_p) # Safety: intro must be at least 100ms
         if ph.any():
             cl = ph[np.argmin(np.abs(ph - fixed_p))]
             if abs(cl - fixed_p) < config.PHRASE_ANCHOR_TOLERANCE_MS:
-                ideal_p = cl
+                ideal_p = max(100, cl)
 
-        # Phrasing Fix: The overlay duration MUST match the snapped intro length
-        ms_trans = ideal_p
+        # We want (current_time_ms - ms_trans + first_beat_ms) to be a multiple of ms_per_bar
+        ms_trans = max(ideal_p, first_beat_ms + theoretical_ms_trans)
+        
+        # Calculate current 'Phase Error' relative to a 4-bar grid (16 beats)
+        grid_size = ms_per_bar * 4
+        current_phase = (current_time_ms - ms_trans + first_beat_ms) % grid_size
+        correction = (grid_size - current_phase) % grid_size
+        
+        # Apply phase correction to the transition length
+        ms_trans += int(correction)
 
-        # Intelligent Tail Extension (v6.6.0)
-        # If the incoming intro is longer than the outgoing track, we loop the outgoing tail
+        # Intelligent Tail Extension
         if ms_trans > (len(master) - tracklist[-1]['start_ms']):
             loop_bar = identify_loopable_phrase(prev_y_w, sr, t_s_bpm, args.beats_per_bar)
             needed_ms = ms_trans - (len(master) - tracklist[-1]['start_ms'])
             num_loops = int(np.ceil(needed_ms / (len(loop_bar) / sr * 1000))) + 1
             ext_segment = np.tile(loop_bar, num_loops)
             master += ndarray_to_pydub(ext_segment, sr)
-            print(f"  [TAIL] Extended outgoing track by {needed_ms/1000:.1f}s to match intro.")
+            print(f"  [SYNC] Phase-locked alignment: {correction:.1f}ms correction. Extended tail for ambient entry.")
 
         ms_trans = min(ms_trans, len(master))
         track_start_ms = len(master) - ms_trans

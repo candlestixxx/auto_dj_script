@@ -355,35 +355,59 @@ class DualFilterSweep(TransitionArchetype):
     def apply(outro_array, intro_array, sr, **kwargs):
         """
         Progressively builds the intro by sweeping filters.
-        Out track: Low-pass remains open longer, then dips.
-        In track: High-pass enters deep, then opens up.
+        Maintains filter state for ultra-smooth sweeps.
         """
         total_samples = outro_array.shape[1] if outro_array.ndim == 2 else len(outro_array)
-        block_size = int(sr * 0.05) # Smaller blocks for smoother sweep
-        
+        if total_samples == 0:
+            return outro_array, intro_array
+            
+        block_size = int(sr * 0.02)
         f_m = np.copy(outro_array)
         f_n = np.copy(intro_array)
         
+        # Determine channel count
+        num_ch = f_m.shape[0] if f_m.ndim == 2 else 1
+        
+        zi_m = None
+        zi_n = None
+        
         for start in range(0, total_samples, block_size):
             end = min(total_samples, start + block_size)
+            if start >= total_samples: break
+            
             progress = start / total_samples
             
-            # Outgoing: LP remains open for first 30%, then sweeps down
-            if progress < 0.3:
+            # Outgoing: Delay sweep until 70%
+            if progress < 0.7:
                 lp_freq = 20000.0
             else:
-                p_adj = (progress - 0.3) / 0.7
-                lp_freq = 20000 * (400 / 20000) ** p_adj
+                p_adj = (progress - 0.7) / 0.3
+                lp_freq = 20000 * (1500 / 20000) ** p_adj
                 
-            # Incoming: HP sweeps down from 15k to 20 over the whole range
             hp_freq = 15000 * (20 / 15000) ** progress
+            nyquist = 0.5 * sr
             
-            if outro_array.ndim == 2:
-                f_m[:, start:end] = apply_dsp_filter(f_m[:, start:end], sr, 'lowpass', lp_freq)
-                f_n[:, start:end] = apply_dsp_filter(f_n[:, start:end], sr, 'highpass', hp_freq)
-            else:
-                f_m[start:end] = apply_dsp_filter(f_m[start:end], sr, 'lowpass', lp_freq)
-                f_n[start:end] = apply_dsp_filter(f_n[start:end], sr, 'highpass', hp_freq)
+            # Outgoing Filter
+            sos_m = butter(4, lp_freq / nyquist, btype='lowpass', output='sos')
+            if zi_m is None: zi_m = np.zeros((sos_m.shape[0], num_ch, 2))
+            
+            chunk_m = f_m[:, start:end] if f_m.ndim == 2 else f_m[start:end].reshape(1, -1)
+            if chunk_m.shape[1] == 0: continue
+            
+            filtered_m, zi_m = sosfilt(sos_m, chunk_m, axis=1, zi=zi_m)
+            if f_m.ndim == 2: f_m[:, start:end] = filtered_m
+            else: f_m[start:end] = filtered_m.flatten()
+
+            # Incoming Filter
+            sos_n = butter(4, max(20.0, hp_freq) / nyquist, btype='highpass', output='sos')
+            if zi_n is None: zi_n = np.zeros((sos_n.shape[0], num_ch, 2))
+            
+            chunk_n = f_n[:, start:end] if f_n.ndim == 2 else f_n[start:end].reshape(1, -1)
+            if chunk_n.shape[1] == 0: continue
+            
+            filtered_n, zi_n = sosfilt(sos_n, chunk_n, axis=1, zi=zi_n)
+            if f_n.ndim == 2: f_n[:, start:end] = filtered_n
+            else: f_n[start:end] = filtered_n.flatten()
                 
         return f_m, f_n
 
