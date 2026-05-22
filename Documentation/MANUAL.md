@@ -1,4 +1,4 @@
-# 📖 Auto DJ Script: The Comprehensive User Manual (v6.7.0)
+# 📖 Auto DJ Script: The Comprehensive User Manual (v6.9.0)
 
 ## 1. Introduction
 The Auto DJ Script is a professional-grade, autonomous audio mixing engine designed for DJs, broadcasters, and audiophiles. It leverages state-of-the-art Music Information Retrieval (MIR) and Digital Signal Processing (DSP) to create seamless, harmonically perfect sets.
@@ -31,6 +31,12 @@ The engine utilizes a multi-core **ProcessPoolExecutor** architecture to paralle
 
 ### 🔄 Sample-Accurate Cross-Correlation Looping
 If a track is too short for a planned transition, the engine identifies rhythmically stable "loopable phrases" using cross-correlation of onset envelopes, ensuring seamless, artifact-free tail extensions.
+
+### 🤖 AI Genre Inference (v6.8.0)
+The engine utilizes a Multi-Layer Perceptron (MLP) neural classifier to identify stylistic archetypes (Ambient, Techno, House, High-Energy) with probabilistic accuracy. It provides real-time "AI Rationales" explaining the mathematical justification (e.g., spectral centroid) behind each classification.
+
+### 🌐 Distributed Cluster Rendering (v6.9.0)
+Auto DJ can orchestrate rendering tasks across a cluster of nodes. The Web Dashboard includes a real-time monitor to track node status, core counts, and task distribution, ensuring the engine scales with your hardware.
 
 ### 🧠 Smart Phrase Detection
 The engine identifies "structural boundaries" (drops, breakdowns) using spectral novelty detection. Transitions are anchored to these points rather than arbitrary bar counts, ensuring a musically intuitive flow.

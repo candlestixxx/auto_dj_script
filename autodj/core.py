@@ -1,9 +1,9 @@
-""" Core Orchestration Engine | Auto DJ Script (v6.8.0)
+""" Core Orchestration Engine | Auto DJ Script (v6.9.0)
 ==================================================
 The core engine is responsible for tracklist optimization (Simulated Annealing),
 parallel audio preprocessing, and the final sample-accurate mix reconstruction.
 
-Version 6.8.0 features: AI Genre Inference and Transition Rationales.
+Version 6.9.0 features: Distributed Cluster Rendering.
 """
 
 import os, glob, re, librosa, random, json, subprocess
@@ -28,6 +28,7 @@ from .dsp import (
 )
 from .utils import pydub_to_ndarray, ndarray_to_pydub
 from .version import __version__
+from .cluster import cluster
 
 
 def get_semitone_diff(key1, key2):
@@ -187,7 +188,7 @@ def find_optimal_order(files, status_obj=None):
 
 
 def compile_master_set(args, status_obj=None):
-    """The High-Performance Mixing Pipeline (v6.7.0)."""
+    """The High-Performance Mixing Pipeline (v6.9.0)."""
     folder = args.input
     all_files = []
     for ext in config.SUPPORTED_EXTENSIONS:
@@ -213,9 +214,9 @@ def compile_master_set(args, status_obj=None):
 
     num_tracks = len(all_files)
 
-    # Phase 2: Parallel Warping (50-75%)
+    # Phase 2: Cluster-Accelerated Warping (50-75%)
     if status_obj:
-        status_obj["status"] = f"Warping {num_tracks} tracks (Parallel)"
+        status_obj["status"] = f"Warping {num_tracks} tracks (Cluster: {cluster.nodes[0].id})"
 
     start_bpm, end_bpm = args.bpm, (args.end_bpm or args.bpm)
 
@@ -227,136 +228,135 @@ def compile_master_set(args, status_obj=None):
         warp_tasks.append((all_files[i], meta_list[i]['bpm'], t_s_bpm, t_e_bpm, meta_list[i]['key'], tar_key, True))
 
     warped_results = [None] * num_tracks
-    with ProcessPoolExecutor() as executor:
-        futures = {executor.submit(warp_worker, task): i for i, task in enumerate(warp_tasks)}
-        for future in as_completed(futures):
-            idx = futures[future]
-            warped_results[idx] = future.result()
-            if status_obj is not None:
-                completed = sum(1 for x in warped_results if x is not None)
-                status_obj["status"] = f"Warping track {completed}/{num_tracks}"
-                status_obj["progress"] = 50 + int((completed / num_tracks) * 25)
+    executor = cluster.get_executor()
+    futures = {executor.submit(warp_worker, task): i for i, task in enumerate(warp_tasks)}
+    for future in as_completed(futures):
+        idx = futures[future]
+        warped_results[idx] = future.result()
+        if status_obj is not None:
+            completed = sum(1 for x in warped_results if x is not None)
+            status_obj["status"] = f"Warping track {completed}/{num_tracks}"
+            status_obj["progress"] = 50 + int((completed / num_tracks) * 25)
 
-    # Phase 3: Segmented Mixing (75-100%)
+    # Phase 3: Segmented Cluster Mixing (75-100%)
     if status_obj:
-        status_obj["status"] = "Mixing Master Stream"
+        status_obj["status"] = "Mixing Master Stream (Cluster)"
 
     tracklist, master, processed_tracks, current_time_ms = [], None, [], 0
 
-    # Initialize a persistent ProcessPoolExecutor to avoid overhead of spawning
-    # new processes for every transition. (v6.7.0 Optimized)
-    with ProcessPoolExecutor() as mix_executor:
-        for i in range(num_tracks):
-            y_w, sr = warped_results[i]
-            if y_w is None:
-                print(f"[WARN] Skipping track {i}: warp failed")
-                continue
+    # Using Cluster-Aware persistent executor (v6.9.0 Optimized)
+    mix_executor = cluster.get_executor()
+    for i in range(num_tracks):
+        y_w, sr = warped_results[i]
+        if y_w is None:
+            print(f"[WARN] Skipping track {i}: warp failed")
+            continue
 
-            path = f"scratch_{i}_{os.getpid()}.wav"
-            sf.write(path, y_w.T, sr, format='WAV', subtype='PCM_16')
-            nxt = trim_silence(AudioSegment.from_wav(path))
-            os.remove(path)
-            processed_tracks.append((nxt, y_w, sr))
+        path = f"scratch_{i}_{os.getpid()}.wav"
+        sf.write(path, y_w.T, sr, format='WAV', subtype='PCM_16')
+        nxt = trim_silence(AudioSegment.from_wav(path))
+        os.remove(path)
+        processed_tracks.append((nxt, y_w, sr))
 
-            if master is None:
-                master = nxt
-                tracklist.append({'timestamp': "00:00:00", 'file': os.path.basename(all_files[i]),
-                                   'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
+        if master is None:
+            master = nxt
+            tracklist.append({'timestamp': "00:00:00", 'file': os.path.basename(all_files[i]),
+                               'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
                                'genre': meta_list[i]['genre'],
                                'rationale': meta_list[i].get('rationale', ''),
                                'start_ms': 0})
-                current_time_ms = len(master)
-                continue
+            current_time_ms = len(master)
+            continue
 
-            prev_nxt, prev_y_w, _ = processed_tracks[i-1]
-            t_s_bpm = start_bpm + (end_bpm - start_bpm) * (i / num_tracks)
-            beats, theoretical_ms_trans, first_beat_ms = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
-            ph = detect_phrases(y_w, sr)
+        prev_nxt, prev_y_w, _ = processed_tracks[i-1]
+        t_s_bpm = start_bpm + (end_bpm - start_bpm) * (i / num_tracks)
+        beats, theoretical_ms_trans, first_beat_ms = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
+        ph = detect_phrases(y_w, sr)
 
-            # 1. Precise Phase Alignment (v7.0.0)
-            ms_per_beat = 60000.0 / t_s_bpm
-            ms_per_bar = ms_per_beat * args.beats_per_bar
-            grid_size = ms_per_bar * 4
+        # 1. Precise Phase Alignment (v7.0.0)
+        ms_per_beat = 60000.0 / t_s_bpm
+        ms_per_bar = ms_per_beat * args.beats_per_bar
+        grid_size = ms_per_bar * 4
 
-            fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)] if len(beats) > 0 else theoretical_ms_trans
+        fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)] if len(beats) > 0 else theoretical_ms_trans
 
-            # Snapping
-            ideal_p = fixed_p
-            if ph.any():
-                cl = ph[np.argmin(np.abs(ph - fixed_p))]
-                if abs(cl - fixed_p) < config.PHRASE_ANCHOR_TOLERANCE_MS:
-                    ideal_p = cl
+        # Snapping
+        ideal_p = fixed_p
+        if ph.any():
+            cl = ph[np.argmin(np.abs(ph - fixed_p))]
+            if abs(cl - fixed_p) < config.PHRASE_ANCHOR_TOLERANCE_MS:
+                ideal_p = cl
 
-            # Initial overlap calculation
-            ms_trans = max(ideal_p, first_beat_ms + int(ms_per_bar * 4))
+        # Initial overlap calculation
+        ms_trans = max(ideal_p, first_beat_ms + int(ms_per_bar * 4))
 
-            # Absolute Grid Sync
-            current_kick_pos = (current_time_ms - ms_trans + first_beat_ms)
-            phase_error = current_kick_pos % grid_size
+        # Absolute Grid Sync
+        current_kick_pos = (current_time_ms - ms_trans + first_beat_ms)
+        phase_error = current_kick_pos % grid_size
 
-            # Always increase overlap to align with the PREVIOUS grid point
-            # This keeps the mix solid and avoids gaps
-            if phase_error != 0:
-                 ms_trans += int(phase_error)
+        # Always increase overlap to align with the PREVIOUS grid point
+        # This keeps the mix solid and avoids gaps
+        if phase_error != 0:
+             ms_trans += int(phase_error)
 
-            # 2. Sample-Accurate Nudging (v7.0.1)
-            m_slice = pydub_to_ndarray(master[-ms_trans:])
-            n_slice = pydub_to_ndarray(nxt[:ms_trans])
-            sync_nudge = find_sync_offset(m_slice, n_slice, sr, t_s_bpm)
+        # 2. Sample-Accurate Nudging (v7.0.1)
+        m_slice = pydub_to_ndarray(master[-ms_trans:])
+        n_slice = pydub_to_ndarray(nxt[:ms_trans])
+        sync_nudge = find_sync_offset(m_slice, n_slice, sr, t_s_bpm)
 
-            # If nudge is positive, it means intro is delayed, so we start it EARLIER (+ ms_trans)
-            ms_trans += sync_nudge
+        # If nudge is positive, it means intro is delayed, so we start it EARLIER (+ ms_trans)
+        ms_trans += sync_nudge
 
-            # Intelligent Tail Extension
-            if ms_trans > (len(master) - tracklist[-1]['start_ms']):
-                loop_bar = identify_loopable_phrase(prev_y_w, sr, t_s_bpm, args.beats_per_bar)
-                needed_ms = ms_trans - (len(master) - tracklist[-1]['start_ms'])
-                num_loops = int(np.ceil(needed_ms / (len(loop_bar) / sr * 1000))) + 1
-                ext_segment = np.tile(loop_bar, num_loops)
-                master += ndarray_to_pydub(ext_segment, sr)
+        # Intelligent Tail Extension
+        if ms_trans > (len(master) - tracklist[-1]['start_ms']):
+            loop_bar = identify_loopable_phrase(prev_y_w, sr, t_s_bpm, args.beats_per_bar)
+            needed_ms = ms_trans - (len(master) - tracklist[-1]['start_ms'])
+            num_loops = int(np.ceil(needed_ms / (len(loop_bar) / sr * 1000))) + 1
+            ext_segment = np.tile(loop_bar, num_loops)
+            master += ndarray_to_pydub(ext_segment, sr)
 
-            print(f"  [SYNC] Global Grid: {phase_error:.1f}ms err. Nudge: {sync_nudge}ms. Overlap: {ms_trans/1000:.1f}s")
+        print(f"  [SYNC] Global Grid: {phase_error:.1f}ms err. Nudge: {sync_nudge}ms. Overlap: {ms_trans/1000:.1f}s")
 
-            ms_trans = min(ms_trans, len(master))
-            track_start_ms = len(master) - ms_trans
+        ms_trans = min(ms_trans, len(master))
+        track_start_ms = len(master) - ms_trans
 
-            tracklist.append({'timestamp': ms_to_timestamp(track_start_ms), 'file': os.path.basename(all_files[i]),
-                               'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
+        tracklist.append({'timestamp': ms_to_timestamp(track_start_ms), 'file': os.path.basename(all_files[i]),
+                           'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
                            'genre': meta_list[i]['genre'],
                            'rationale': meta_list[i].get('rationale', ''),
                            'start_ms': track_start_ms})
 
-            if status_obj:
-                status_obj["tracklist"] = tracklist
-                status_obj["progress"] = 75 + int((i / (num_tracks-1)) * 25)
+        if status_obj:
+            status_obj["tracklist"] = tracklist
+            status_obj["progress"] = 75 + int((i / (num_tracks-1)) * 25)
 
-            # Gapless Slicing: Both tracks must be sliced using the EXACT same ms_trans
-            m_body, m_outro = master[:-ms_trans], master[-ms_trans:]
-            n_intro, n_body = nxt[:ms_trans], nxt[ms_trans:]
+        # Gapless Slicing: Both tracks must be sliced using the EXACT same ms_trans
+        m_body, m_outro = master[:-ms_trans], master[-ms_trans:]
+        n_intro, n_body = nxt[:ms_trans], nxt[ms_trans:]
 
-            # Archetype Selection Logic
-            mode = getattr(args, 'archetype', 'auto')
-            if mode == 'auto' and meta_list[i]['genre'] == 'High-Energy':
-                mode = 'progressive' # Professional default for Psytrance
+        # Archetype Selection Logic
+        mode = getattr(args, 'archetype', 'auto')
+        if mode == 'auto' and meta_list[i]['genre'] == 'High-Energy':
+            mode = 'progressive' # Professional default for Psytrance
 
-            # Parallel Transition Rendering (v6.7.0)
-            dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass}
-            render_args = (pydub_to_ndarray(m_outro), pydub_to_ndarray(n_intro), sr, mode, ms_trans, ideal_p, dsp_kwargs)
+        # Parallel Transition Rendering (v6.7.0)
+        dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass}
+        render_args = (pydub_to_ndarray(m_outro), pydub_to_ndarray(n_intro), sr, mode, ms_trans, ideal_p, dsp_kwargs)
 
-            # Using the persistent executor defined outside the loop
-            future = mix_executor.submit(transition_render_worker, render_args)
-            mix_bus_raw, _ = future.result()
+        # Using the cluster executor
+        future = mix_executor.submit(transition_render_worker, render_args)
+        mix_bus_raw, _ = future.result()
 
-            if mix_bus_raw is not None:
-                mix_bus = ndarray_to_pydub(mix_bus_raw, sr)
-            else:
-                 # Classic Fallback if parallel render fails
-                 f_m = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(m_outro), sr, 'lowpass', args.lowpass), sr)
-                 f_n = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(n_intro), sr, 'highpass', args.highpass), sr)
-                 mix_bus = f_m.fade_out(ms_trans).overlay(f_n.fade_in(ms_trans))
+        if mix_bus_raw is not None:
+            mix_bus = ndarray_to_pydub(mix_bus_raw, sr)
+        else:
+             # Classic Fallback if parallel render fails
+             f_m = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(m_outro), sr, 'lowpass', args.lowpass), sr)
+             f_n = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(n_intro), sr, 'highpass', args.highpass), sr)
+             mix_bus = f_m.fade_out(ms_trans).overlay(f_n.fade_in(ms_trans))
 
-            master = m_body + mix_bus + n_body
-            current_time_ms = len(master)
+        master = m_body + mix_bus + n_body
+        current_time_ms = len(master)
 
     if master:
         try:

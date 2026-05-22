@@ -12,6 +12,7 @@ import config
 from .core import compile_master_set
 from .version import __version__
 from .dsp import ArchetypeRegistry
+from .cluster import cluster
 
 app = FastAPI(title=f"Auto DJ v{__version__} Console")
 templates = Jinja2Templates(directory="templates")
@@ -64,7 +65,9 @@ async def index(request: Request):
 
 @app.get("/status")
 async def get_status():
-    return JSONResponse(mixing_status)
+    status_data = dict(mixing_status)
+    status_data["cluster"] = cluster.get_status()
+    return JSONResponse(status_data)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

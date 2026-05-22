@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.9.0] - 2024-05-27
+### Added
+- **Distributed Cluster Rendering**: Introduced `autodj/cluster.py` for orchestrating rendering tasks across multiple nodes.
+- **Persistent Cluster Executor**: Optimized the mixing pipeline to use node-aware process pools.
+- **Cluster Monitor UI**: Real-time status display of available rendering nodes in the Command Console.
+- **Asynchronous Task Dispatching**: Refactored warping and mixing to support non-blocking cluster distribution.
+
 ## [6.8.0] - 2024-05-27
 ### Added
 - **AI Genre Inference Engine**: Implemented an MLP-based classification model in `autodj/models.py`.
