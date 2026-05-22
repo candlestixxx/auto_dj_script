@@ -234,6 +234,8 @@ def compile_master_set(args, status_obj=None):
         status_obj["status"] = "Mixing Master Stream"
 
     tracklist, master, processed_tracks, current_time_ms = [], None, [], 0
+    master_grid_offset = 0
+
     for i in range(num_tracks):
         y_w, sr = warped_results[i]
         if y_w is None:
@@ -248,6 +250,8 @@ def compile_master_set(args, status_obj=None):
 
         if master is None:
             master = nxt
+            # Anchor the global grid to the first beat of the first track
+            _, _, master_grid_offset = analyze_geometry(nxt, sr, start_bpm, args.beats_per_bar, args.transition_bars)
             tracklist.append({'timestamp': "00:00:00", 'file': os.path.basename(all_files[i]),
                                'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
                                'genre': meta_list[i]['genre'], 'start_ms': 0})
@@ -259,10 +263,10 @@ def compile_master_set(args, status_obj=None):
         beats, theoretical_ms_trans, first_beat_ms = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
         ph = detect_phrases(y_w, sr)
 
-        # 1. Theoretical Transition Prep
+        # 1. Theoretical Transition Prep (v7.2.0)
         ms_per_beat = 60000.0 / t_s_bpm
         ms_per_bar = ms_per_beat * args.beats_per_bar
-        grid_size = ms_per_bar * 4 
+        grid_size = ms_per_bar * 8 # Switch to 8-bar phrasing (Standard Psy)
         
         fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)] if len(beats) > 0 else theoretical_ms_trans
         ideal_p = fixed_p
@@ -274,35 +278,37 @@ def compile_master_set(args, status_obj=None):
         # Initial overlap
         ms_trans = max(ideal_p, first_beat_ms + int(ms_per_bar * 4))
 
-        # 2. Intelligent Tail Extension (v7.1.0)
-        # MUST happen before grid math as it changes the master length
+        # 2. Intelligent Tail Extension
         if ms_trans > (len(master) - tracklist[-1]['start_ms']):
             loop_bar = identify_loopable_phrase(prev_y_w, sr, t_s_bpm, args.beats_per_bar)
             needed_ms = ms_trans - (len(master) - tracklist[-1]['start_ms'])
             num_loops = int(np.ceil(needed_ms / (len(loop_bar) / sr * 1000))) + 1
             ext_segment = np.tile(loop_bar, num_loops)
             master += ndarray_to_pydub(ext_segment, sr)
-            current_time_ms = len(master) # Update reference time
+            current_time_ms = len(master)
 
-        # 3. Final Precise Phase Alignment
-        # Now that master is at its final length, align to global grid
+        # 3. Final Precise Phase Alignment (Relative to First Kick of Mix)
+        # Expected Kick = master_grid_offset + (N * grid_size)
         current_kick_pos = (current_time_ms - ms_trans + first_beat_ms)
-        phase_error = current_kick_pos % grid_size
+        relative_pos = current_kick_pos - master_grid_offset
+        phase_error = relative_pos % grid_size
+        
         if phase_error != 0:
              ms_trans += int(phase_error)
 
-        # 4. Sample-Accurate Nudging
+        # 4. Sample-Accurate Nudging (High-Res Kick Alignment)
         m_slice = pydub_to_ndarray(master[-ms_trans:])
         n_slice = pydub_to_ndarray(nxt[:ms_trans])
         sync_nudge = find_sync_offset(m_slice, n_slice, sr, t_s_bpm)
         
-        # Safety: Nudge should only ever fix phase drift, never skip beats
-        # Cap nudge at +/- 0.5 beats
+        # Cap nudge at +/- 0.5 beats to maintain phrase integrity
         max_nudge = int(ms_per_beat / 2)
         sync_nudge = max(-max_nudge, min(max_nudge, sync_nudge))
-        ms_trans += sync_nudge
+        
+        # CORRECT DIRECTION: Subtract nudge to align transients
+        ms_trans -= sync_nudge
 
-        print(f"  [SYNC] Phase-locked: {phase_error:.1f}ms (grid) + {sync_nudge}ms (nudge). Overlap: {ms_trans/1000:.1f}s")
+        print(f"  [SYNC] 8-Bar Phrase Locked. Offset: {master_grid_offset}ms. Nudge: {sync_nudge}ms.")
 
         ms_trans = min(ms_trans, len(master))
         track_start_ms = len(master) - ms_trans
