@@ -59,9 +59,10 @@ def dynamic_warp(y, sr, native_bpm, start_target_bpm, end_target_bpm):
              tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fout:
             sf.write(fin.name, data.T, sr, format='WAV', subtype='PCM_16')
             fin.close(); fout.close()
-            ratio = 1.0 / rate
-            # Use --high-quality for better transient preservation
-            subprocess.run(["rubberband", "--quiet", "--tempo", str(ratio), fin.name, fout.name], check=True)
+            # Correct Ratio: rate is target/native. 
+            # If target > native, rate > 1.0 (speed up).
+            # Rubber Band --tempo X: X > 1.0 is faster.
+            subprocess.run(["rubberband", "--quiet", "--tempo", str(rate), fin.name, fout.name], check=True)
             out_y, _ = librosa.load(fout.name, sr=sr, mono=False)
             os.remove(fin.name); os.remove(fout.name)
             
@@ -258,49 +259,50 @@ def compile_master_set(args, status_obj=None):
         beats, theoretical_ms_trans, first_beat_ms = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
         ph = detect_phrases(y_w, sr)
 
-        # 1. Precise Phase Alignment (v7.0.0)
+        # 1. Theoretical Transition Prep
         ms_per_beat = 60000.0 / t_s_bpm
         ms_per_bar = ms_per_beat * args.beats_per_bar
         grid_size = ms_per_bar * 4 
         
         fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)] if len(beats) > 0 else theoretical_ms_trans
-        
-        # Snapping
         ideal_p = fixed_p
         if ph.any():
             cl = ph[np.argmin(np.abs(ph - fixed_p))]
             if abs(cl - fixed_p) < config.PHRASE_ANCHOR_TOLERANCE_MS:
                 ideal_p = cl
 
-        # Initial overlap calculation
+        # Initial overlap
         ms_trans = max(ideal_p, first_beat_ms + int(ms_per_bar * 4))
-        
-        # Absolute Grid Sync
-        current_kick_pos = (current_time_ms - ms_trans + first_beat_ms)
-        phase_error = current_kick_pos % grid_size
-        
-        # Always increase overlap to align with the PREVIOUS grid point
-        # This keeps the mix solid and avoids gaps
-        if phase_error != 0:
-             ms_trans += int(phase_error)
 
-        # 2. Sample-Accurate Nudging (v7.0.1)
-        m_slice = pydub_to_ndarray(master[-ms_trans:])
-        n_slice = pydub_to_ndarray(nxt[:ms_trans])
-        sync_nudge = find_sync_offset(m_slice, n_slice, sr, t_s_bpm)
-        
-        # If nudge is positive, it means intro is delayed, so we start it EARLIER (+ ms_trans)
-        ms_trans += sync_nudge
-
-        # Intelligent Tail Extension
+        # 2. Intelligent Tail Extension (v7.1.0)
+        # MUST happen before grid math as it changes the master length
         if ms_trans > (len(master) - tracklist[-1]['start_ms']):
             loop_bar = identify_loopable_phrase(prev_y_w, sr, t_s_bpm, args.beats_per_bar)
             needed_ms = ms_trans - (len(master) - tracklist[-1]['start_ms'])
             num_loops = int(np.ceil(needed_ms / (len(loop_bar) / sr * 1000))) + 1
             ext_segment = np.tile(loop_bar, num_loops)
             master += ndarray_to_pydub(ext_segment, sr)
+            current_time_ms = len(master) # Update reference time
 
-        print(f"  [SYNC] Global Grid: {phase_error:.1f}ms err. Nudge: {sync_nudge}ms. Overlap: {ms_trans/1000:.1f}s")
+        # 3. Final Precise Phase Alignment
+        # Now that master is at its final length, align to global grid
+        current_kick_pos = (current_time_ms - ms_trans + first_beat_ms)
+        phase_error = current_kick_pos % grid_size
+        if phase_error != 0:
+             ms_trans += int(phase_error)
+
+        # 4. Sample-Accurate Nudging
+        m_slice = pydub_to_ndarray(master[-ms_trans:])
+        n_slice = pydub_to_ndarray(nxt[:ms_trans])
+        sync_nudge = find_sync_offset(m_slice, n_slice, sr, t_s_bpm)
+        
+        # Safety: Nudge should only ever fix phase drift, never skip beats
+        # Cap nudge at +/- 0.5 beats
+        max_nudge = int(ms_per_beat / 2)
+        sync_nudge = max(-max_nudge, min(max_nudge, sync_nudge))
+        ms_trans += sync_nudge
+
+        print(f"  [SYNC] Phase-locked: {phase_error:.1f}ms (grid) + {sync_nudge}ms (nudge). Overlap: {ms_trans/1000:.1f}s")
 
         ms_trans = min(ms_trans, len(master))
         track_start_ms = len(master) - ms_trans

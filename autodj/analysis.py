@@ -191,37 +191,49 @@ def identify_loopable_phrase(y, sr, bpm, beats_per_bar=4):
         return last_30_s[:, -samples_per_bar:]
     return last_30_s[-samples_per_bar:]
 
+from scipy.signal import butter, sosfilt, sosfiltfilt
+
 def find_sync_offset(outro_y, intro_y, sr, bpm):
     """
-    Finds the sample-accurate offset between two tracks using cross-correlation 
-    of their onset envelopes.
+    Finds the sample-accurate offset by correlating the isolated kick-drum
+    waveforms (20-150Hz). This is the 'Mastering' approach to sync.
     """
-    # Ensure both are mono for envelope calculation
+    # 1. Isolate the Kick Band (20Hz - 150Hz)
+    nyquist = 0.5 * sr
+    sos = butter(4, [20.0 / nyquist, 150.0 / nyquist], btype='bandpass', output='sos')
+    
+    # Ensure mono
     o_m = librosa.to_mono(outro_y) if outro_y.ndim == 2 else outro_y
     i_m = librosa.to_mono(intro_y) if intro_y.ndim == 2 else intro_y
     
-    # Calculate onset envelopes
-    o_env = librosa.onset.onset_strength(y=o_m, sr=sr)
-    i_env = librosa.onset.onset_strength(y=i_m, sr=sr)
+    # Use zero-phase filtering (forward-backward) so the filter doesn't shift the beats
+    o_kick = sosfiltfilt(sos, o_m)
+    i_kick = sosfiltfilt(sos, i_m)
     
-    # Increase search window to +/- 2 beats (captures larger drift)
+    # 2. High-Res Cross-Correlation
+    # Only correlate the first 4 bars of the transition to save CPU
     ms_per_beat = 60000.0 / bpm
-    hop_length = 512
-    search_frames = int((ms_per_beat * 2 / 1000.0) * sr / hop_length)
+    samples_per_beat = int((ms_per_beat / 1000.0) * sr)
+    limit = min(len(o_kick), len(i_kick), samples_per_beat * 16)
     
-    correlation = np.correlate(o_env, i_env, mode='full')
-    center = len(i_env) - 1
+    # Perform correlation on the raw waveforms
+    correlation = np.correlate(o_kick[:limit], i_kick[:limit], mode='full')
+    center = limit - 1
     
-    # Find local maximum within the search window
-    start_idx = max(0, center - search_frames)
-    end_idx = min(len(correlation), center + search_frames)
+    # Search window: +/- 1.5 beats (plenty for fine-tuning)
+    search_samples = int(samples_per_beat * 1.5)
+    start_idx = max(0, center - search_samples)
+    end_idx = min(len(correlation), center + search_samples)
     window = correlation[start_idx : end_idx]
     
     if len(window) == 0: return 0
     
+    # Find the sample-accurate peak
     best_lag_rel = np.argmax(window)
-    actual_lag_frames = (start_idx + best_lag_rel) - center
-    nudge_ms = (actual_lag_frames * hop_length / sr) * 1000
+    actual_lag_samples = (start_idx + best_lag_rel) - center
+    
+    # Convert samples to ms
+    nudge_ms = (actual_lag_samples / sr) * 1000
     
     return int(nudge_ms)
 
