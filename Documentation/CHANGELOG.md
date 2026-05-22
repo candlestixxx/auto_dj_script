@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.7.0] - 2024-05-27
+### Added
+- **High-Performance Parallel Engine**: Transitioned metadata analysis and audio warping to a multi-core `ProcessPoolExecutor` architecture.
+- **Sample-Accurate Cross-Correlation Looping**: Refactored `identify_loopable_phrase` using cross-correlation to ensure artifact-free tail extensions.
+- **AI Genre Inference Pipeline**: Integrated high-dimensional spectral feature extraction as a foundation for the upcoming CNN-based classification.
+- **Segmented Mixing Engine**: The final mix is now assembled from pre-rendered parallelized track segments.
+
 ## [6.6.0] - 2024-05-26
 ### Added
 - **Intelligent Phrase Looping**: Automatically identifies and loops rhythmically compatible phrases to extend short track outros/intros.

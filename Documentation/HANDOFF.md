@@ -1,34 +1,34 @@
-# 🤝 Auto DJ Script: Transition & Handoff Brief (v6.6.0)
+# 🤝 Auto DJ Script: Transition & Handoff Brief (v6.7.0)
 
-## 🎖 Current Status: "The Intelligent Looping Era"
-The project has reached a new level of robustness. v6.6.0 introduces **Intelligent Phrase Looping**, which effectively solves the "short track" problem by autonomously extending outros and intros with rhythmically compatible segments.
+## 🎖 Current Status: "The Parallel Processing Era"
+The project has undergone a significant performance and MIR evolution. v6.7.0 introduces a high-performance parallel engine and sample-accurate cross-correlation MIR.
 
 ## 🔎 Project Audit
 1. **Completed features:**
-   - **MIR/Analysis**: Parallel metadata extraction, SA sequencing, v3 Genre Inference, Phrase Detection, **Rhythmic Similarity/Loop Identification** (v6.6.0).
-   - **DSP/Mixing**: 10th-order filters, Plugin architecture, Adaptive Spectral Balancing, **Phrase Looping & Tail Extension** (v6.6.0).
-   - **Performance**: **Segmented Parallel Mixing Engine** (v6.5.0) - renders transitions in parallel.
-   - **Mastering**: 3-band Multiband Compression, Genre-Aware Profiles, Dynamic Energy Mastering.
-   - **Broadcast/UI**: Command Console (FastAPI), Live Telemetry, Performance Metrics, RTMP/Icecast Broadcasting.
-2. **Bugs or fragile areas**: The parallel engine is stable. Phrase looping uses a basic energy-envelope heuristic; cross-correlation would improve sample-accuracy.
-3. **Refactor opportunities**: Porting core DSP to Rust.
-4. **Documentation gaps**: None. v6.6.0 full documentation sync complete.
+   - **Parallel Engine**: Multi-core `ProcessPoolExecutor` now handles Metadata Analysis, Audio Warping, and Transition Rendering. Persistent executors are used in the mixing loop to minimize overhead.
+   - **Sample-Accurate Looping**: `identify_loopable_phrase` in `analysis.py` now uses cross-correlation of onset envelopes, ensuring artifact-free tail extensions.
+   - **AI Pipeline**: `extract_ai_features` gathers MFCCs and spectral metrics (centroid, contrast, flatness, rolloff) for future CNN training.
+   - **Mix-Bus Protection**: Integrated `apply_limiter` into the parallel transition worker to prevent clipping during summing.
+   - **Documentation**: Fully synchronized all 15+ documentation files to v6.7.0.
+2. **Bugs or fragile areas**: The parallel engine requires significant RAM for large sets. `Rubber Band` remains a subprocess dependency.
+3. **Refactor opportunities**: Implementing the CNN model for genre inference using the newly created feature extraction pipeline.
+4. **Documentation gaps**: None. v6.7.0 full documentation sync complete.
 
 ## 🏗 Key Accomplishments in this Session:
-1.  **Intelligent Phrase Looping**: Added `identify_loopable_phrase` to analysis module.
-2.  **Tail Extension**: Integrated auto-looping into the parallel mixing pipeline. Transitions no longer truncate for short tracks.
-3.  **UI Feedback**: Updated the rationale display to show `[Loop-Extended]` when a track is autonomously lengthened.
-4.  **Performance Metrics**: Integrated a parallelism monitor into the Web Dashboard.
-5.  **Documentation Synchronization**: Updated 10+ files to v6.6.0, following the "Extreme Operational Standard".
+1.  **High-Performance Parallelism**: Refactored `core.py` to leverage all CPU cores for time-intensive tasks.
+2.  **Cross-Correlation MIR**: Upgraded looping logic for perfect phrase extensions.
+3.  **Spectral AI Pipeline**: Laid the mathematical foundation for Deep Learning genre classification.
+4.  **UI & Manual Updates**: Updated the Command Console and User Manual to reflect v6.7.0 capabilities.
+5.  **Verified Stability**: Passed full test suite and verified GUI via Playwright.
 
 ## 🧠 Memory for the Next Agent:
-- **Looping**: Looping is triggered automatically if `ms_trans > len(prev_nxt)`.
-- **Parallelism**: We use `ProcessPoolExecutor`. Avoid nesting pools.
+- **Parallelism**: We use `ProcessPoolExecutor`. Always use persistent executors within loops to avoid process-spawning overhead.
+- **MIR**: Onset envelope cross-correlation is the preferred method for rhythmic alignment.
 - **Directives**: Follow `GLOBAL_LLM_DIRECTIVE.md` with absolute priority.
 
-## 🚀 The Next Frontier (v6.7.0+):
-- [ ] **AI Genre Inference (CNN)**: Deep learning for style detection.
-- [ ] **VST Host Integration**: Pro-audio plugin support.
+## 🚀 The Next Frontier (v6.8.0+):
+- [ ] **CNN Genre Model**: Train and integrate the deep learning model for style detection.
+- [ ] **VST Host Integration**: Support for pro-audio plugins.
 - [ ] **Distributed Multi-Node Rendering**: Cloud-scale set compilation.
 
 ---

@@ -1,4 +1,4 @@
-# 🏗 Project Directory & Code Structure (v5.1.0)
+# 🏗 Project Directory & Code Structure (v6.7.0)
 
 ## Directory Layout
 - **\`autodj/\`**: The core Python package.
