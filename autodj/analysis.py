@@ -1,5 +1,5 @@
 """
-Audio analysis module for the Auto DJ system.
+Audio analysis module for the Auto DJ system (v6.7.0).
 This module is the "brain" of the engine, responsible for Music Information Retrieval (MIR).
 
 Theoretical Foundations:
@@ -168,28 +168,51 @@ def calculate_dynamic_transition(outro_y, intro_y, sr, target_bpm, beats_per_bar
 
 def identify_loopable_phrase(y, sr, bpm, beats_per_bar=4):
     """
-    Finds the most rhythmically stable 1-bar or 2-bar phrase for looping.
-    Used for tail extension during transitions. Handles stereo.
+    Finds the most rhythmically stable 1-bar or 2-bar phrase for looping (v6.7.0).
+    Uses Cross-Correlation for sample-accurate loop point detection.
     """
     ms_per_beat = 60000.0 / bpm
     ms_per_bar = ms_per_beat * beats_per_bar
     samples_per_bar = int(sr * (ms_per_bar / 1000.0))
 
-    # Focus on the last 30 seconds for outro loops. Slicing on time axis.
+    # Focus on the last 45 seconds for outro loops
+    lookback_samples = int(sr * 45)
     if y.ndim == 2:
-        last_30_s = y[:, -int(sr * 30):] if y.shape[1] > sr * 30 else y
-        last_30_s_mono = librosa.to_mono(last_30_s)
+        outro_segment = y[:, -lookback_samples:] if y.shape[1] > lookback_samples else y
+        outro_mono = librosa.to_mono(outro_segment)
     else:
-        last_30_s = y[-int(sr * 30):] if len(y) > sr * 30 else y
-        last_30_s_mono = last_30_s
+        outro_segment = y[-lookback_samples:] if len(y) > lookback_samples else y
+        outro_mono = outro_segment
 
-    # Simple rhythmic similarity: find segments with similar energy envelopes
-    onset_env = librosa.onset.onset_strength(y=last_30_s_mono, sr=sr)
+    # Calculate onset strength envelope
+    hop_length = 512
+    onset_env = librosa.onset.onset_strength(y=outro_mono, sr=sr, hop_length=hop_length)
 
-    # Heuristic: find a high-energy bar near the end
+    # We want to find a bar that highly correlates with the one preceding it
+    bar_frames = int(samples_per_bar / hop_length)
+    if len(onset_env) < bar_frames * 2:
+        # Fallback to the last bar if track is too short
+        return y[:, -samples_per_bar:] if y.ndim == 2 else y[-samples_per_bar:]
+
+    # sliding window cross-correlation on the envelope
+    search_range = len(onset_env) - bar_frames * 2
+    best_score = -1
+    best_idx = len(onset_env) - bar_frames
+
+    for i in range(search_range):
+        current_bar = onset_env[i : i + bar_frames]
+        next_bar = onset_env[i + bar_frames : i + 2 * bar_frames]
+        score = np.corrcoef(current_bar, next_bar)[0, 1]
+        if score > best_score:
+            best_score = score
+            best_idx = i
+
+    # Convert frame index back to samples
+    loop_start_sample = best_idx * hop_length
+
     if y.ndim == 2:
-        return last_30_s[:, -samples_per_bar:]
-    return last_30_s[-samples_per_bar:]
+        return outro_segment[:, loop_start_sample : loop_start_sample + samples_per_bar]
+    return outro_segment[loop_start_sample : loop_start_sample + samples_per_bar]
 
 def find_sync_offset(outro_y, intro_y, sr, bpm):
     """
@@ -225,16 +248,51 @@ def find_sync_offset(outro_y, intro_y, sr, bpm):
     
     return int(nudge_ms)
 
+def extract_ai_features(y, sr):
+    """
+    Extracts high-dimensional spectral features for CNN-based genre inference (v6.7.0).
+    Returns a feature vector containing MFCCs, Spectral Centroid, Contrast, Flatness, and Rolloff.
+    """
+    y_mono = librosa.to_mono(y) if y.ndim == 2 else y
+
+    # 1. Mel-Frequency Cepstral Coefficients (Timbre)
+    mfccs = librosa.feature.mfcc(y=y_mono, sr=sr, n_mfcc=20)
+    mfccs_mean = np.mean(mfccs, axis=1)
+
+    # 2. Spectral Centroid (Brightness)
+    centroid = librosa.feature.spectral_centroid(y=y_mono, sr=sr)
+    centroid_mean = np.mean(centroid)
+
+    # 3. Spectral Contrast (Texture)
+    contrast = librosa.feature.spectral_contrast(y=y_mono, sr=sr)
+    contrast_mean = np.mean(contrast)
+
+    # 4. Spectral Flatness (Noisiness)
+    flatness = librosa.feature.spectral_flatness(y=y_mono)
+    flatness_mean = np.mean(flatness)
+
+    # 5. Spectral Rolloff (High-frequency content)
+    rolloff = librosa.feature.spectral_rolloff(y=y_mono, sr=sr)
+    rolloff_mean = np.mean(rolloff)
+
+    return {
+        'mfccs': mfccs_mean.tolist(),
+        'centroid': float(centroid_mean),
+        'contrast': float(contrast_mean),
+        'flatness': float(flatness_mean),
+        'rolloff': float(rolloff_mean)
+    }
+
 def get_genre_archetype(y, sr, bpm=None):
     """
     Identifies the genre archetype using a multi-feature heuristic (v3 - Enhanced).
     """
-    y_mono = librosa.to_mono(y) if y.ndim == 2 else y
-    centroid = np.mean(librosa.feature.spectral_centroid(y=y_mono, sr=sr))
-    rolloff = np.mean(librosa.feature.spectral_rolloff(y=y_mono, sr=sr))
-    flatness = np.mean(librosa.feature.spectral_flatness(y=y_mono))
-    mfcc = np.mean(librosa.feature.mfcc(y=y_mono, sr=sr, n_mfcc=13), axis=1)
-    contrast = np.mean(librosa.feature.spectral_contrast(y=y_mono, sr=sr))
+    features = extract_ai_features(y, sr)
+    centroid = features['centroid']
+    rolloff = features['rolloff']
+    flatness = features['flatness']
+    mfcc = features['mfccs']
+    contrast = features['contrast']
 
     if bpm is None:
         if centroid > 3000 or rolloff > 6000: return 'High-Energy'

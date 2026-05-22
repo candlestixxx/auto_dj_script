@@ -1,7 +1,9 @@
-# 📝 Immediate Tasks (v6.6.0)
+# 📝 Immediate Tasks (v6.7.0)
 
 ## 🚀 Features (Immediate Implementation)
-- [x] **Intelligent Phrase Looping**: Automatic tail extension.
+- [x] **High-Performance Parallel Engine**: Multi-core Analysis/Warping.
+- [x] **Sample-Accurate Cross-Correlation Looping**: Enhanced phrase matching.
+- [ ] **AI Genre Inference Pipeline**: Spectral feature extraction for CNN.
 
 ## 🛠 Improvements & Refactoring
 - [x] **Logarithmic SA Cooling**: Implement a more robust cooling schedule for large sets (>30 tracks).

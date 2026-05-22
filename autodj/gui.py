@@ -1,6 +1,6 @@
 """
-Web-based GUI for the Auto DJ Script using FastAPI and WebSockets.
-v5.5.0: Dynamic Status Polling and Interactive Tracklist.
+Web-based GUI for the Auto DJ Script using FastAPI and WebSockets (v6.7.0).
+v6.7.0: High-Performance Parallel Telemetry.
 """
 from fastapi import FastAPI, Request, Form, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
@@ -19,7 +19,9 @@ templates = Jinja2Templates(directory="templates")
 mixing_status = {
     "status": "Idle",
     "tracklist": [],
-    "progress": 0
+    "progress": 0,
+    "version": __version__,
+    "parallel_cores": os.cpu_count() or 1
 }
 
 class ConnectionManager:

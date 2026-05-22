@@ -25,8 +25,10 @@
 - [x] **Dynamic Energy Mastering**: Profile-based intensity scaling (v6.4.0).
 - [x] **Segmented Parallel Mixing**: Multi-core transition rendering (v6.5.0).
 - [x] **Intelligent Phrase Looping**: Automatic tail extension (v6.6.0).
+- [x] **High-Performance Parallel Engine**: Full multi-core analysis and warping (v6.7.0).
+- [x] **Sample-Accurate Cross-Correlation Looping**: Enhanced tail extension (v6.7.0).
+- [ ] **AI Genre Evolution**: Deep Learning (CNN) for style inference (v6.7.0 PRE-RELEASE).
 - [ ] **Distributed Rendering**: Multi-node set compilation.
-- [ ] **AI Genre Evolution**: Deep Learning (CNN) for style inference.
 - [ ] **VST Host Integration**: Support for pro-audio plugins.
 - [x] **Live Broadcast Client**: Integrated Icecast/RTMP streaming.
 
