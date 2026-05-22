@@ -37,6 +37,13 @@
 
     <div class="progress-track"><div class="progress-fill" id="fill"></div></div>
 
+    <div id="cluster-monitor" style="background: #111118; padding: 15px; border-radius: 10px; border: 1px solid #1f1f2a; margin-bottom: 20px; font-size: 0.8em; display: flex; gap: 20px;">
+        <div style="color: #888; font-weight: 800;">CLUSTER NODES:</div>
+        <div id="nodes-container" style="display: flex; gap: 15px;">
+            <!-- Nodes will be injected here -->
+        </div>
+    </div>
+
     <div class="grid">
         <div class="log-area" id="terminal">
             [SYSTEM] Kernel v{{ version }} active...<br>
@@ -146,6 +153,7 @@
     }
 
     connectWS();
+    startPolling();
 
     // Status polling — always active for reliable updates
     let pollInterval = null;
@@ -156,6 +164,19 @@
             const d = await r.json();
             state.innerText = d.status.toUpperCase();
             fill.style.width = d.progress + '%';
+
+            if (d.cluster && d.cluster.length > 0) {
+                document.getElementById('nodes-container').innerHTML = d.cluster.map(n => `
+                    <div class="cluster-node" style="display: flex; align-items: center; gap: 5px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${n.status === 'Idle' ? '#00ffcc' : '#a020f0'};"></span>
+                        <span style="color: #eee;">${n.id}</span>
+                        <span style="color: #666;">(${n.cores} Cores)</span>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('nodes-container').innerHTML = '<span style="color: #666;">No nodes connected</span>';
+            }
+
             if (d.tracklist && d.tracklist.length > 0) {
                 trackContainer.innerHTML = d.tracklist.map(t => `
                     <div class="track-item">

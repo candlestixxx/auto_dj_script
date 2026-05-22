@@ -1,14 +1,15 @@
 /home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/pydub/utils.py:170: RuntimeWarning: Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work
   warn("Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work", RuntimeWarning)
-INFO:     Started server process [1003908]
+INFO:     Started server process [1635920]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-[*] Auto DJ v6.8.0 Console launching...
-INFO:     127.0.0.1:36982 - "GET / HTTP/1.1" 200 OK
-WARNING:  Unsupported upgrade request.
-WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
-INFO:     127.0.0.1:36994 - "GET /ws HTTP/1.1" 404 Not Found
-WARNING:  Unsupported upgrade request.
-WARNING:  No supported WebSocket library detected. Please use "pip install 'uvicorn[standard]'", or install 'websockets' or 'wsproto' manually.
-INFO:     127.0.0.1:37006 - "GET /ws HTTP/1.1" 404 Not Found
+[*] Auto DJ v6.9.0 Console launching...
+INFO:     127.0.0.1:51582 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51584 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:46128 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46130 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     connection closed

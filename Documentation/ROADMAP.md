@@ -28,8 +28,9 @@
 - [x] **High-Performance Parallel Engine**: Full multi-core analysis and warping (v6.7.0).
 - [x] **Sample-Accurate Cross-Correlation Looping**: Enhanced tail extension (v6.7.0).
 - [x] **Neural-Net Genre Inference**: MLP-based stylistic detection and rationale (v6.8.0).
+- [x] **Distributed Cluster Rendering**: Local/Remote task orchestration (v6.9.0).
 - [ ] **AI Genre Evolution**: Deep Learning (CNN) for style inference.
-- [ ] **Distributed Rendering**: Multi-node set compilation.
+- [ ] **Multi-Node Cloud Rendering**: Distributed set compilation.
 - [ ] **VST Host Integration**: Support for pro-audio plugins.
 - [x] **Live Broadcast Client**: Integrated Icecast/RTMP streaming.
 

@@ -1,9 +1,9 @@
-# 📝 Immediate Tasks (v6.8.0)
+# 📝 Immediate Tasks (v6.9.0)
 
 ## 🚀 Features (Immediate Implementation)
-- [x] **AI Genre Inference Engine**: Neural classification with probabilistic activation.
-- [x] **Mathematical Rationale Display**: Real-time MIR explanation in UI.
-- [ ] **CNN Model Training**: Collect datasets for deep-learning style inference.
+- [x] **Distributed Cluster Dispatcher**: Rendering task orchestration.
+- [x] **Cluster Monitor UI**: Real-time node status in dashboard.
+- [ ] **Remote Node Support**: Secure WebSocket-based remote rendering nodes.
 
 ## 🛠 Improvements & Refactoring
 - [x] **Logarithmic SA Cooling**: Implement a more robust cooling schedule for large sets (>30 tracks).
