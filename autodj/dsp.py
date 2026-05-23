@@ -24,6 +24,10 @@ class TransitionArchetype:
 
     @staticmethod
     def apply(outro_array, intro_array, sr, **kwargs):
+        """
+        Applies the transition.
+        kwargs['ideal_p']: The beat-sync offset in ms.
+        """
         raise NotImplementedError
 
 class ArchetypeRegistry:
@@ -226,6 +230,16 @@ class BassSwap(TransitionArchetype):
     @staticmethod
     def apply(outro_array, intro_array, sr, **kwargs):
         crossover = kwargs.get('crossover', 150.0)
+        ideal_p = kwargs.get('ideal_p', 0)
+
+        # Align intro based on beat offset
+        shift_samples = int(sr * (ideal_p / 1000.0))
+        if shift_samples > 0:
+            if intro_array.ndim == 2:
+                intro_array = np.pad(intro_array, ((0,0), (shift_samples, 0)))[:, :outro_array.shape[1]]
+            else:
+                intro_array = np.pad(intro_array, (shift_samples, 0))[:len(outro_array)]
+
         outro_highs = apply_dsp_filter(outro_array, sr, 'highpass', crossover)
         intro_lows = apply_dsp_filter(intro_array, sr, 'lowpass', crossover)
         return outro_highs, intro_lows
@@ -284,6 +298,16 @@ class ClassicFade(TransitionArchetype):
     def apply(outro_array, intro_array, sr, **kwargs):
         lowpass = kwargs.get('lowpass', 200.0)
         highpass = kwargs.get('highpass', 150.0)
+        ideal_p = kwargs.get('ideal_p', 0)
+
+        # Align intro based on beat offset
+        shift_samples = int(sr * (ideal_p / 1000.0))
+        if shift_samples > 0:
+            if intro_array.ndim == 2:
+                intro_array = np.pad(intro_array, ((0,0), (shift_samples, 0)))[:, :outro_array.shape[1]]
+            else:
+                intro_array = np.pad(intro_array, (shift_samples, 0))[:len(outro_array)]
+
         f_m = apply_dsp_filter(outro_array, sr, 'lowpass', lowpass)
         f_n = apply_dsp_filter(intro_array, sr, 'highpass', highpass)
         return f_m, f_n

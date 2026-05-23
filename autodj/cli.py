@@ -7,8 +7,13 @@ import os
 import config
 from .version import __version__
 from .core import compile_master_set
+from .plugins import PluginRegistry
 
 def main():
+    # Load modular plugins (v7.7.0)
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    PluginRegistry.load_plugins(os.path.join(root_dir, "plugins"))
+
     """
     Parses command line arguments and initiates the compilation process.
     Supports overrides for all major processing parameters.

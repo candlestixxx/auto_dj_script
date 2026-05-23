@@ -1,5 +1,21 @@
 # Changelog
 
+## [7.8.0] - 2024-06-01
+### Added
+- **Advanced Monitoring Dashboard**: Comprehensive system-wide health telemetry and resource charting.
+- **Disk I/O & Network Telemetry**: Integrated real-time tracking of disk and network throughput using `psutil`.
+- **Real-time Resource Charting**: Integrated Chart.js for visual health trends in the Command Console.
+- **Granular Task Tracking**: Detailed progress display for background analysis and mixing jobs.
+- **Health Guardrail Indicators**: Visual alerts and status pills for system throttling and resource exhaustion.
+
+## [7.7.0] - 2024-05-31
+### Added
+- **Modular Plugin System**: Introduced a unified framework for `SourcePlugin`, `OutputPlugin`, and `ToolPlugin`.
+- **Dynamic Plugin Loading**: Automatic registration of external modules from the `plugins/` directory.
+- **Refactored Core Pipeline**: Abstracted track discovery and mix export into modular components.
+- **Tool Hooks**: Added execution hooks (`pre_mix`, `post_mix`, `on_track_start`) for utility integration.
+- **UI Plugin Management**: Real-time selection of Input Sources and Output Sinks via the Web Dashboard.
+
 ## [7.6.0] - 2024-05-30
 ### Added
 - **Spectral Terrain 3D Visualizer**: Integrated Three.js for real-time WebGL rendering of Mel-Spectrogram maps.
