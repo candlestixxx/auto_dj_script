@@ -11,6 +11,7 @@ Theoretical Foundations:
 import librosa
 import numpy as np
 from .utils import pydub_to_ndarray
+from scipy.signal import butter, sosfilt, sosfiltfilt
 
 def get_musical_key(y, sr):
     """Estimates the musical key of a track."""
@@ -69,8 +70,6 @@ def get_native_bpm(y, sr):
         if len(chunk) < sr * 5: continue
             
         onset_env = librosa.onset.onset_strength(y=chunk, sr=sr)
-        # Narrow the search range for Psytrance (typically 130-155)
-        # but allow for faster/slower tracks
         tempo, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, start_bpm=140)
         
         if isinstance(tempo, np.ndarray): tempo = tempo[0]
@@ -145,20 +144,37 @@ def analyze_geometry(segment, sr, target_bpm, beats_per_bar, transition_bars):
     if len(beat_times_ms) == 0:
         return [], int(ms_per_transition), 0
 
-    # 2. Kick-Locked Downbeat Finder
-    # We look for the most consistent rhythmic start point in the bass frequencies
-    search_limit = min(len(beat_times_ms), 16)
-    energies = []
-    for i in range(search_limit):
-        b_ms = beat_times_ms[i]
-        start_s = int(max(0, (b_ms - 20) * sr / 1000))
-        end_s = int(min(len(samples_kick), (b_ms + 20) * sr / 1000))
-        if start_s >= end_s: energies.append(0)
-        else: energies.append(np.max(np.abs(samples_kick[start_s:end_s])))
+    # 2. Kick-Locked Downbeat Finder (Version 8.5)
+    # We use a pattern-matching heuristic: Verify the 'One' is part of a 4/4 cycle.
+    search_limit = min(len(beat_times_ms), 32)
+    kick_scores = []
     
-    # Anchor to the strongest transient in the first measure
-    downbeat_idx = np.argmax(energies[:4]) if len(energies) >= 4 else 0
+    samples_per_beat = int((ms_per_beat / 1000.0) * sr)
+    
+    for i in range(search_limit - 4):
+        # Calculate a 'Pattern Score' for this beat being the 'One'
+        # Check energy at i, i+1, i+2, i+3
+        pattern_energy = 0
+        for offset in range(4):
+            b_ms = beat_times_ms[i + offset]
+            start_s = int(max(0, (b_ms - 15) * sr / 1000))
+            end_s = int(min(len(samples_kick), (b_ms + 15) * sr / 1000))
+            pattern_energy += np.max(np.abs(samples_kick[start_s:end_s]))
+        
+        # Check for 'Silence' between beats (confirms it's a transient, not a drone)
+        mid_beat_ms = beat_times_ms[i] + (ms_per_beat / 2.0)
+        m_start = int((mid_beat_ms - 15) * sr / 1000)
+        m_end = int((mid_beat_ms + 15) * sr / 1000)
+        mid_energy = np.max(np.abs(samples_kick[m_start:m_end])) if m_start < len(samples_kick) else 1.0
+        
+        # High score = Loud beats + Quiet gaps
+        kick_scores.append(pattern_energy / (mid_energy + 0.01))
+    
+    # Anchor to the beat with the most consistent 4/4 'pulse'
+    downbeat_idx = np.argmax(kick_scores) if kick_scores else 0
     first_beat_ms = beat_times_ms[downbeat_idx]
+    
+    print(f"  [ANALYSIS] Kick Pattern Lock: Beat {downbeat_idx} at {first_beat_ms}ms (Score: {max(kick_scores):.2f})")
         
     return beat_times_ms, int(ms_per_transition), first_beat_ms
 
@@ -208,12 +224,10 @@ def identify_loopable_phrase(y, sr, bpm, beats_per_bar=4):
         return last_30_s[:, -samples_per_bar:]
     return last_30_s[-samples_per_bar:]
 
-from scipy.signal import butter, sosfilt, sosfiltfilt
-
 def find_sync_offset(outro_y, intro_y, sr, bpm):
     """
-    Finds the sample-accurate offset by correlating the isolated kick-drum
-    waveforms (20-150Hz) with a measure-wide search window.
+    Finds the sample-accurate offset using Peak-Centric Alignment (Version 8.0).
+    Identifies kick transients and locks their peaks.
     """
     nyquist = 0.5 * sr
     sos = butter(4, [20.0 / nyquist, 150.0 / nyquist], btype='bandpass', output='sos')
@@ -221,29 +235,42 @@ def find_sync_offset(outro_y, intro_y, sr, bpm):
     o_m = librosa.to_mono(outro_y) if outro_y.ndim == 2 else outro_y
     i_m = librosa.to_mono(intro_y) if intro_y.ndim == 2 else intro_y
     
-    # Zero-phase kick isolation
-    o_kick = sosfiltfilt(sos, o_m)
-    i_kick = sosfiltfilt(sos, i_m)
+    # Isolate kicks (Absolute amplitude for peak finding)
+    o_kick = np.abs(sosfiltfilt(sos, o_m))
+    i_kick = np.abs(sosfiltfilt(sos, i_m))
     
+    # 1. Energy Gating: Skip search if signal is too quiet (ambient)
+    if np.max(i_kick) < 0.05:
+        return 0
+        
     ms_per_beat = 60000.0 / bpm
     samples_per_beat = int((ms_per_beat / 1000.0) * sr)
-    limit = min(len(o_kick), len(i_kick), samples_per_beat * 16)
     
-    correlation = np.correlate(o_kick[:limit], i_kick[:limit], mode='full')
-    center = limit - 1
+    # 2. Cross-Correlation on a measure-wide window
+    limit = samples_per_beat * 16 # Check 4 bars
+    o_slice = o_kick[-limit:] if len(o_kick) > limit else o_kick
+    i_slice = i_kick[:limit] if len(i_kick) > limit else i_kick
     
-    # Increase search window to +/- 4 beats (1 full measure)
-    # This catches the 'half-measure' and 'echo' errors simultaneously
-    search_samples = int(samples_per_beat * 4.0)
+    correlation = np.correlate(o_slice, i_slice, mode='full')
+    center = len(i_slice) - 1
+    
+    # Search window: +/- 1.5 full beats (catches most phasing errors)
+    search_samples = int(samples_per_beat * 1.5)
     start_idx = max(0, center - search_samples)
     end_idx = min(len(correlation), center + search_samples)
     window = correlation[start_idx : end_idx]
     
     if len(window) == 0: return 0
     
+    # 3. Confidence Check
     best_lag_rel = np.argmax(window)
-    actual_lag_samples = (start_idx + best_lag_rel) - center
+    peak_val = window[best_lag_rel]
+    avg_val = np.mean(window)
     
+    if peak_val < avg_val * 1.25:
+        return 0 # Low confidence, trust the grid instead
+        
+    actual_lag_samples = (start_idx + best_lag_rel) - center
     return int((actual_lag_samples / sr) * 1000)
 
 def get_genre_archetype(y, sr, bpm=None):
