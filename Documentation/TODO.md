@@ -1,19 +1,21 @@
-# 📝 Immediate Tasks (7.0.0)
+# 📝 Immediate Tasks (7.8.0)
 
 ## 🚀 Features (Immediate Implementation)
-- [x] **Remote Node Registration**: `/cluster/join` API for external nodes.
-- [x] **Spectral Terrain Generation**: Mel-Spectrogram mapping for 3D UI.
-- [x] **In-Memory Audio Pipeline**: Zero-disk I/O for track preparation.
-- [x] **WebGL Terrain Viewer**: Implement 3D visualizer in dashboard (7.6.0).
+- [x] **Modular Plugin System**: Abstracted Sources, Sinks, and Tools (7.7.0).
+- [ ] **Advanced Monitoring Dashboard**: (7.8.0)
+    - [ ] **Disk I/O & Network Telemetry**: Track throughput using `psutil`.
+    - [ ] **Real-time Resource Charting**: Integrate Chart.js for health visualization.
+    - [ ] **Task Status Tracker**: Granular progress display for background jobs.
+    - [ ] **System Health Guardrail Indicators**: Visual alerts for CPU/RAM throttling.
 
 ## 🛠 Improvements & Refactoring
 - [x] **Logarithmic SA Cooling**: Implement a more robust cooling schedule for large sets (>30 tracks).
-- [x] **Mastering True-Peak Limiter**: Upgrade the simple hard limiter to a true-peak look-ahead limiter in \`dsp.py\`.
+- [x] **Mastering True-Peak Limiter**: Upgrade the simple hard limiter to a true-peak look-ahead limiter in `dsp.py`.
 
 ## 📚 Documentation
 - [x] **Operational Directive Consolidation**.
 - [x] **Universal Version Sync**.
-- [x] **Code Commentary Audit**: Ensure every function in \`dsp.py\` and \`core.py\` has deep "why/how" comments.
+- [x] **Code Commentary Audit**: Ensure every function in `dsp.py` and `core.py` has deep "why/how" comments.
 
 ---
 *Keep on goin'! Don't stop the party!*

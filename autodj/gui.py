@@ -15,6 +15,7 @@ from .version import __version__
 from .dsp import ArchetypeRegistry
 from .cluster import cluster
 from .monitoring import monitor
+from .plugins import PluginRegistry
 
 app = FastAPI(title=f"Auto DJ v{__version__} Console")
 templates = Jinja2Templates(directory="templates")
@@ -23,6 +24,7 @@ mixing_status = {
     "status": "Idle",
     "tracklist": [],
     "playlist": [],
+    "active_tasks": {},
     "progress": 0,
     "version": __version__,
     "parallel_cores": os.cpu_count() or 1,
@@ -30,6 +32,10 @@ mixing_status = {
         "cpu_usage": 0,
         "memory_usage": 0,
         "active_threads": 0,
+        "disk_read": 0,
+        "disk_write": 0,
+        "net_sent": 0,
+        "net_recv": 0,
         "is_healthy": True,
         "is_throttled": False
     },
@@ -74,7 +80,9 @@ async def index(request: Request):
             "version": __version__,
             "config": config,
             "status": mixing_status,
-            "archetypes": ArchetypeRegistry.get_all()
+            "archetypes": ArchetypeRegistry.get_all(),
+            "sources": PluginRegistry.get_sources(),
+            "outputs": PluginRegistry.get_outputs()
         }
     )
 
@@ -85,6 +93,9 @@ async def startup_event():
 async def update_telemetry():
     """Background task to poll system performance metrics."""
     psutil.cpu_percent()  # Initialize first call
+    last_disk = psutil.disk_io_counters()
+    last_net = psutil.net_io_counters()
+
     while True:
         try:
             cpu = psutil.cpu_percent()
@@ -92,6 +103,21 @@ async def update_telemetry():
             mixing_status["telemetry"]["cpu_usage"] = cpu
             mixing_status["telemetry"]["memory_usage"] = mem
             mixing_status["telemetry"]["active_threads"] = len(psutil.Process().threads())
+
+            # Disk & Net Throughput (v7.8.0)
+            now_disk = psutil.disk_io_counters()
+            now_net = psutil.net_io_counters()
+
+            if last_disk and now_disk:
+                mixing_status["telemetry"]["disk_read"] = (now_disk.read_bytes - last_disk.read_bytes) / config.HEALTH_CHECK_INTERVAL
+                mixing_status["telemetry"]["disk_write"] = (now_disk.write_bytes - last_disk.write_bytes) / config.HEALTH_CHECK_INTERVAL
+
+            if last_net and now_net:
+                mixing_status["telemetry"]["net_sent"] = (now_net.bytes_sent - last_net.bytes_sent) / config.HEALTH_CHECK_INTERVAL
+                mixing_status["telemetry"]["net_recv"] = (now_net.bytes_recv - last_net.bytes_recv) / config.HEALTH_CHECK_INTERVAL
+
+            last_disk = now_disk
+            last_net = now_net
 
             # Health Logic (v7.2.0)
             is_healthy = (cpu < config.MAX_CPU_LOAD and mem < config.MAX_RAM_LOAD)
@@ -169,6 +195,8 @@ async def start_mixing(
     end_bpm: float = Form(None),
     reorder: bool = Form(False),
     archetype: str = Form("auto"),
+    source_plugin: str = Form("local_folder"),
+    output_plugin: str = Form("local_file"),
     mastering_intensity: float = Form(0.5),
     dynamic_transitions: bool = Form(True),
     genre_aware_mastering: bool = Form(True),
@@ -191,6 +219,8 @@ async def start_mixing(
             self.dry_run = False
             self.reorder = reorder
             self.archetype = archetype
+            self.source_plugin = source_plugin
+            self.output_plugin = output_plugin
             self.mastering_intensity = mastering_intensity
             self.dynamic_transitions = dynamic_transitions
             self.genre_aware_mastering = genre_aware_mastering

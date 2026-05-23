@@ -30,6 +30,7 @@ from .utils import pydub_to_ndarray, ndarray_to_pydub, export_rekordbox_xml
 from .version import __version__
 from .cluster import cluster
 from .monitoring import monitor
+from .plugins import PluginRegistry
 import time
 
 
@@ -165,7 +166,13 @@ def find_optimal_order(files, status_obj=None):
     with ProcessPoolExecutor() as executor:
         futures = {executor.submit(analyze_track_worker, f): f for f in files}
         for i, future in enumerate(as_completed(futures)):
+            if status_obj:
+                # Task Tracker Integration (v7.8.0)
+                status_obj["active_tasks"][futures[future]] = "Analyzing..."
+
             r = future.result()
+            if status_obj:
+                status_obj["active_tasks"].pop(futures[future], None)
             results.append(r)
             if status_obj is not None:
                 status_obj["status"] = f"Analyzing Library ({i+1}/{total})"
@@ -220,18 +227,25 @@ def find_optimal_order(files, status_obj=None):
 
 
 def compile_master_set(args, status_obj=None):
-    """The High-Performance Mixing Pipeline (7.5.0)."""
+    """The High-Performance Mixing Pipeline (7.7.0)."""
     folder = args.input
 
-    # Live Deck Initialization (v7.5.0)
-    # If a playlist is provided in status_obj, use it; otherwise fallback to folder scan.
+    # Modular Source Discovery (v7.7.0)
+    source_type = getattr(args, 'source_plugin', 'local_folder')
+    source_cls = PluginRegistry.get_sources().get(source_type)
+
+    # Modular Tool Loading
+    active_tools = [cls() for name, cls in PluginRegistry.get_tools().items()]
+    for tool in active_tools:
+        tool.pre_mix(status_obj=status_obj, args=args)
+
     if status_obj and status_obj.get("playlist"):
         all_files = [os.path.join(folder, f) for f in status_obj["playlist"]]
+    elif source_cls:
+        source = source_cls()
+        all_files = source.get_tracks(folder=folder, extensions=config.SUPPORTED_EXTENSIONS)
     else:
         all_files = []
-        for ext in config.SUPPORTED_EXTENSIONS:
-            all_files.extend(glob.glob(os.path.join(folder, f"*{ext}")))
-            all_files.extend(glob.glob(os.path.join(folder, f"*{ext.upper()}")))
 
     if not all_files:
         if status_obj:
@@ -274,7 +288,13 @@ def compile_master_set(args, status_obj=None):
     futures = {executor.submit(warp_worker, task): i for i, task in enumerate(warp_tasks)}
     for future in as_completed(futures):
         idx = futures[future]
+        if status_obj:
+            status_obj["active_tasks"][all_files[idx]] = "Warping..."
+
         y_w, sr = future.result()
+
+        if status_obj:
+            status_obj["active_tasks"].pop(all_files[idx], None)
 
         # Fault Tolerance: Local Fallback (v7.4.0)
         if y_w is None:
@@ -350,6 +370,7 @@ def compile_master_set(args, status_obj=None):
                                'terrain': meta_list[i].get('terrain', []),
                                'start_ms': 0})
             current_time_ms = len(master)
+            i += 1
             continue
 
         prev_nxt, prev_y_w, _ = processed_tracks[i-1]
@@ -408,12 +429,16 @@ def compile_master_set(args, status_obj=None):
         ms_trans = min(ms_trans, len(master))
         track_start_ms = len(master) - ms_trans
 
-        tracklist.append({'timestamp': ms_to_timestamp(track_start_ms), 'file': os.path.basename(all_files[i]),
-                           'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
-                           'genre': meta_list[i]['genre'],
-                           'rationale': meta_list[i].get('rationale', ''),
-                           'terrain': meta_list[i].get('terrain', []),
-                           'start_ms': track_start_ms})
+        track_meta = {'timestamp': ms_to_timestamp(track_start_ms), 'file': os.path.basename(all_files[i]),
+                       'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
+                       'genre': meta_list[i]['genre'],
+                       'rationale': meta_list[i].get('rationale', ''),
+                       'terrain': meta_list[i].get('terrain', []),
+                       'start_ms': track_start_ms}
+        tracklist.append(track_meta)
+
+        for tool in active_tools:
+            tool.on_track_start(track_meta, status_obj=status_obj)
 
         if status_obj:
             status_obj["tracklist"] = tracklist
@@ -429,12 +454,18 @@ def compile_master_set(args, status_obj=None):
             mode = 'progressive' # Professional default for Psytrance
 
         # Parallel Transition Rendering (7.0.0)
-        dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass}
+        dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass, 'ideal_p': ideal_p}
         render_args = (pydub_to_ndarray(m_outro), pydub_to_ndarray(n_intro), sr, mode, ms_trans, ideal_p, dsp_kwargs)
 
         # Using the cluster executor
+        if status_obj:
+            status_obj["active_tasks"][f"Transition {i-1}->{i}"] = "Mixing..."
+
         future = mix_executor.submit(transition_render_worker, render_args)
         mix_bus_raw, _ = future.result()
+
+        if status_obj:
+             status_obj["active_tasks"].pop(f"Transition {i-1}->{i}", None)
 
         # Fault Tolerance: Fallback to Sequential Render (v7.4.0)
         if mix_bus_raw is None:
@@ -456,46 +487,41 @@ def compile_master_set(args, status_obj=None):
         i += 1
 
     if master:
-        try:
-            # Export directly — skip multiband compression on the full mix
-            # (too memory/CPU intensive for large sets; per-track limiting already applied)
+        # Modular Output Export (v7.7.0)
+        output_type = getattr(args, 'output_plugin', 'local_file')
+        output_cls = PluginRegistry.get_outputs().get(output_type)
+
+        if output_cls:
             if status_obj:
-                status_obj["status"] = "Exporting FLAC"
+                status_obj["status"] = "Exporting via Modular Sink"
                 status_obj["progress"] = 98
-            print(f"[*] Exporting {len(master)/1000/60:.1f} min mix to {args.output}...")
-            master.export(args.output, format="flac")
+
+            try:
+                sink = output_cls()
+                sink.export(
+                    master,
+                    tracklist,
+                    output=args.output,
+                    version=__version__,
+                    all_files=all_files,
+                    meta_list=meta_list,
+                    processed_tracks=processed_tracks
+                )
+
+                if status_obj:
+                    status_obj["status"] = "Complete"
+                    status_obj["progress"] = 100
+
+                for tool in active_tools:
+                    tool.post_mix(status_obj=status_obj)
+            except Exception as e:
+                print(f"[ERROR] Output plugin failed: {e}")
+                if status_obj:
+                    status_obj["status"] = f"Error: Output failed - {e}"
+        else:
+            print(f"[ERROR] Output plugin '{output_type}' not found.")
             if status_obj:
-                status_obj["status"] = "Complete"
-                status_obj["progress"] = 100
-            print(f"[*] Export complete!")
-        except Exception as e:
-            print(f"[ERROR] Export failed: {e}")
-            if status_obj:
-                status_obj["status"] = f"Error: Export failed - {e}"
-            return
-
-        tl_path = os.path.splitext(args.output)[0] + "_tracklist.txt"
-        with open(tl_path, "w") as f:
-            f.write(f"Auto DJ v{__version__} Master Tracklist\n{'='*40}\n")
-            for item in tracklist:
-                f.write(f"[{item['timestamp']}] {item['file']} ({item['key']}) [{item['genre']}]\n")
-
-        # Integration Bridge: Rekordbox XML Export (v7.3.0)
-        xml_path = os.path.splitext(args.output)[0] + "_rekordbox.xml"
-        try:
-            # Enriched tracklist for XML
-            enriched_tl = []
-            for i, item in enumerate(tracklist):
-                entry = dict(item)
-                entry['path'] = all_files[i]
-                entry['bpm'] = str(meta_list[i]['bpm'])
-                entry['duration_ms'] = len(processed_tracks[i][0]) if i < len(processed_tracks) else 0
-                enriched_tl.append(entry)
-
-            export_rekordbox_xml(enriched_tl, xml_path)
-            print(f"[*] Integration: Rekordbox XML exported to {xml_path}")
-        except Exception as e:
-            print(f"[WARN] Rekordbox export failed: {e}")
+                status_obj["status"] = "Error: Output plugin not found"
 
 
 def transition_render_worker(args):
