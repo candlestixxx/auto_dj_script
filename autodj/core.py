@@ -12,7 +12,6 @@ import numpy as np
 from pydub import AudioSegment
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-from .scaling import concurrency
 import config
 
 from .analysis import (
@@ -25,7 +24,7 @@ from .dsp import (
     apply_dsp_filter, trim_silence, normalize_lufs,
     apply_bass_swap, apply_echo_out, apply_hpf_sweep,
     apply_limiter, apply_multiband_compression,
-    apply_log_fade, ArchetypeRegistry
+    apply_log_fade, ArchetypeRegistry, calculate_vu
 )
 from .utils import pydub_to_ndarray, ndarray_to_pydub, export_rekordbox_xml
 from .version import __version__
@@ -33,6 +32,7 @@ from .cluster import cluster
 from .monitoring import monitor
 from .plugins import PluginRegistry
 from .performance import perf
+from .scaling import concurrency
 import time
 
 
@@ -546,8 +546,6 @@ def compile_master_set(args, status_obj=None):
         l_gain = live.get("low_gain", 1.0)
         m_gain = live.get("mid_gain", 1.0)
         h_gain = live.get("high_gain", 1.0)
-        m_profile = live.get("mastering_profile", meta_list[i]['genre'])
-        t_curve = live.get("transition_curve", "Logarithmic")
 
         # Parallel Transition Rendering (7.0.0)
         dsp_kwargs = {
@@ -556,9 +554,7 @@ def compile_master_set(args, status_obj=None):
             'ideal_p': ideal_p,
             'low_gain': l_gain,
             'mid_gain': m_gain,
-            'high_gain': h_gain,
-            'mastering_profile': m_profile,
-            'transition_curve': t_curve
+            'high_gain': h_gain
         }
         render_args = (pydub_to_ndarray(m_outro), pydub_to_ndarray(n_intro), sr, mode, ms_trans, ideal_p, dsp_kwargs)
 
@@ -571,6 +567,8 @@ def compile_master_set(args, status_obj=None):
 
         if status_obj:
              status_obj["active_tasks"].pop(f"Transition {i-1}->{i}", None)
+             if mix_bus_raw is not None:
+                 status_obj["vu"] = calculate_vu(mix_bus_raw)
 
         # Fault Tolerance: Fallback to Sequential Render (v7.4.0)
         if mix_bus_raw is None:
@@ -613,7 +611,8 @@ def compile_master_set(args, status_obj=None):
                     version=__version__,
                     all_files=all_files,
                     meta_list=meta_list,
-                    processed_tracks=processed_tracks
+                    processed_tracks=processed_tracks,
+                    enriched_metadata={"status_obj": status_obj}
                 )
 
                 if status_obj:
@@ -654,23 +653,9 @@ def transition_render_worker(args):
             f_m_raw = apply_dsp_filter(outro_raw, sr, 'lowpass', dsp_kwargs.get('lowpass', 200.0))
             f_n_raw = apply_dsp_filter(intro_raw, sr, 'highpass', dsp_kwargs.get('highpass', 150.0))
 
-        # Apply Professional Transition Fades (v8.3.0)
-        curve = dsp_kwargs.get('transition_curve', 'Logarithmic')
-        from .dsp import apply_s_curve_fade
-
-        if curve == 'S-Curve':
-            f_m_faded = apply_s_curve_fade(f_m_raw, fade_type='out')
-            f_n_faded = apply_s_curve_fade(f_n_raw, fade_type='in')
-        elif curve == 'Linear':
-            num_samples = f_m_raw.shape[1] if f_m_raw.ndim == 2 else len(f_m_raw)
-            lin_out = np.linspace(1, 0, num_samples)
-            lin_in = np.linspace(0, 1, num_samples)
-            f_m_faded = f_m_raw * lin_out
-            f_n_faded = f_n_raw * lin_in
-        else:
-            # Default: Logarithmic (Equal Power)
-            f_m_faded = apply_log_fade(f_m_raw, fade_type='out')
-            f_n_faded = apply_log_fade(f_n_raw, fade_type='in')
+        # Apply Professional Logarithmic Fades with Dip (7.0.0)
+        f_m_faded = apply_log_fade(f_m_raw, fade_type='out')
+        f_n_faded = apply_log_fade(f_n_raw, fade_type='in')
 
         # Precise Mix-Bus Summation
         summed = f_m_faded + f_n_faded
@@ -680,8 +665,7 @@ def transition_render_worker(args):
 
         # 1.5 Real-time EQ Gain Stage (v7.9.0)
         # Apply the live EQ gains to the final transition mix-bus
-        m_profile = dsp_kwargs.get('mastering_profile', 'Default')
-        summed = apply_multiband_compression(summed, sr, intensity=0.5, genre_profile=m_profile,
+        summed = apply_multiband_compression(summed, sr, intensity=0.5,
                                             low_gain=l_gain, mid_gain=m_gain, high_gain=h_gain)
 
         # Ensure correct shape (stereo) and duration

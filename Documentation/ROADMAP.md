@@ -1,4 +1,4 @@
-# 🗺 Auto DJ Script: Evolutionary Roadmap (v8.3.0)
+# 🗺 Auto DJ Script: Evolutionary Roadmap (v8.4.0)
 
 ## 🌟 Version 1-4: The Foundation (COMPLETED)
 - [x] **High-Performance Parallel Engine**: Metadata extraction.
@@ -28,8 +28,8 @@
 - [x] **Advanced Monitoring Dashboard**: System-wide health telemetry and resource charting (7.8.0).
 - [x] **Real-time FX & Performance Engine**: Interactive EQ and speedup monitoring (7.9.0).
 - [x] **Integrated Autonomous Station**: Full E2E validation, Pioneer/Rekordbox XML bridge, and environment hardening (8.0.0).
-- [x] **Autonomous Auto-Pilot**: Intelligent real-time queue replenishment (8.2.0).
-- [x] **Advanced Performance Audit**: Task-level timing, ETA, and dynamic scaling (8.3.0).
+- [x] **Autonomous Evolution (v8.3)**: "Smart Replenish" Auto-Pilot and performance auditing.
+- [x] **Analytics & Archive Bundling (v8.4)**: Real-time VU metering and session zipping.
 - [ ] **Quantum Sequence Optimizer**: Next-gen SA with parallel branch exploration.
 
 ## 🚀 Version 6.x: The Plugin & Cloud Era (COMPLETED)

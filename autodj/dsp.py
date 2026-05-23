@@ -355,6 +355,27 @@ class SpectralBalancedMix(TransitionArchetype):
 
         return f_m, f_n
 
+def calculate_vu(audio_array):
+    """
+    Calculates Peak and RMS levels for the given audio array.
+    Used for real-time VU meter telemetry (v8.4.0).
+    """
+    if audio_array.size == 0:
+        return {"peak": -100.0, "rms": -100.0}
+
+    # Peak level in dBFS
+    peak = np.max(np.abs(audio_array))
+    peak_db = 20 * np.log10(peak) if peak > 0 else -100.0
+
+    # RMS level in dBFS
+    rms = np.sqrt(np.mean(audio_array**2))
+    rms_db = 20 * np.log10(rms) if rms > 0 else -100.0
+
+    return {
+        "peak": float(max(-100.0, peak_db)),
+        "rms": float(max(-100.0, rms_db))
+    }
+
 def apply_log_fade(audio_array, fade_type='in', dip_db=-2.5):
     """
     Applies a Logarithmic (Equal Power) fade with a Volume Dip.

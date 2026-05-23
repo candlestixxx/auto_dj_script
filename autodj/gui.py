@@ -1,6 +1,6 @@
 """
-Web-based GUI for the Auto DJ Script using FastAPI and WebSockets (8.3.0).
-8.3.0: Autonomous Auto-Pilot & Performance Audit 2.0.
+Web-based GUI for the Auto DJ Script using FastAPI and WebSockets (7.6.0).
+7.6.0: The Visual Era (Spectral Terrain 3D).
 """
 from fastapi import FastAPI, Request, Form, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
@@ -17,8 +17,6 @@ from .dsp import ArchetypeRegistry
 from .cluster import cluster
 from .monitoring import monitor
 from .plugins import PluginRegistry
-from .performance import perf
-from .scaling import concurrency
 
 app = FastAPI(title=f"Auto DJ v{__version__} Console")
 templates = Jinja2Templates(directory="templates")
@@ -34,6 +32,8 @@ mixing_status = {
         "estimated_completion": "N/A"
     },
     "progress": 0,
+    "vu": {"peak": -100.0, "rms": -100.0},
+    "last_archive": None,
     "version": __version__,
     "parallel_cores": os.cpu_count() or 1,
     "telemetry": {
@@ -55,9 +55,7 @@ mixing_status = {
         "high_gain": 1.0,
         "transition_bars": config.TRANSITION_BARS,
         "paused": False,
-        "auto_pilot": False,
-        "mastering_profile": "Default",
-        "transition_curve": "Logarithmic"
+        "auto_pilot": False
     }
 }
 
@@ -148,25 +146,11 @@ async def get_status():
     status_data = dict(mixing_status)
     status_data["cluster"] = cluster.get_status()
     status_data["monitoring"] = monitor.get_status()
-    status_data["performance_history"] = perf.current_session
-    status_data["concurrency"] = concurrency.get_status()
-
     # Populate available tracks if idle
     if mixing_status["status"] == "Idle":
         import glob
         status_data["available_tracks"] = [os.path.basename(f) for f in glob.glob(os.path.join(config.INPUT_FOLDER, "*")) if any(f.endswith(ext) for ext in config.SUPPORTED_EXTENSIONS)]
-
-    # Surgical fix for numpy int64 serialization in JSONResponse
-    def fix_numpy(obj):
-        if isinstance(obj, dict):
-            return {k: fix_numpy(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [fix_numpy(x) for x in obj]
-        elif hasattr(obj, "item"): # numpy types
-            return obj.item()
-        return obj
-
-    return JSONResponse(content=jsonable_encoder(fix_numpy(status_data)))
+    return JSONResponse(content=jsonable_encoder(status_data))
 
 @app.post("/playlist/add")
 async def playlist_add(filename: str = Form(...)):
@@ -196,9 +180,7 @@ async def update_params(
     high_gain: float = Form(None),
     transition_bars: int = Form(None),
     paused: bool = Form(None),
-    auto_pilot: bool = Form(None),
-    mastering_profile: str = Form(None),
-    transition_curve: str = Form(None)
+    auto_pilot: bool = Form(None)
 ):
     """Real-time parameter adjustment endpoint."""
     if mastering_intensity is not None:
@@ -217,10 +199,6 @@ async def update_params(
         mixing_status["live_params"]["paused"] = paused
     if auto_pilot is not None:
         mixing_status["live_params"]["auto_pilot"] = auto_pilot
-    if mastering_profile is not None:
-        mixing_status["live_params"]["mastering_profile"] = mastering_profile
-    if transition_curve is not None:
-        mixing_status["live_params"]["transition_curve"] = transition_curve
     return {"status": "Updated", "params": mixing_status["live_params"]}
 
 @app.websocket("/ws")
@@ -299,6 +277,13 @@ async def download_master():
     if os.path.exists(config.OUTPUT_FILE):
         return FileResponse(config.OUTPUT_FILE, filename=os.path.basename(config.OUTPUT_FILE))
     return JSONResponse({"error": "Mix not found."}, status_code=404)
+
+@app.get("/download_archive")
+async def download_archive():
+    last_archive = mixing_status.get("last_archive")
+    if last_archive and os.path.exists(last_archive):
+        return FileResponse(last_archive, filename=os.path.basename(last_archive))
+    return JSONResponse({"error": "Archive not found."}, status_code=404)
 
 def run_gui(host="0.0.0.0", port=8000):
     print(f"[*] Auto DJ v{__version__} Console launching on {host}:{port}...")

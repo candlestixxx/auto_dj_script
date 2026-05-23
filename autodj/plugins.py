@@ -151,8 +151,15 @@ class LocalFileSink(OutputPlugin):
 
             export_rekordbox_xml(enriched_tl, xml_path)
             print(f"[*] Integration: Rekordbox XML exported to {xml_path}")
+
+            # NEW: Session Archive Bundling (v8.4.0)
+            from .utils import create_session_archive
+            archive_path = create_session_archive(output_path, tl_path, xml_path)
+            if enriched_metadata and "status_obj" in enriched_metadata:
+                enriched_metadata["status_obj"]["last_archive"] = archive_path
+
         except Exception as e:
-            print(f"[WARN] Rekordbox export failed: {e}")
+            print(f"[WARN] Rekordbox or Archive export failed: {e}")
 
 @PluginRegistry.register_source
 class LocalFolderSource(SourcePlugin):

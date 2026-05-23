@@ -1,24 +1,23 @@
 # Changelog
 
-## [8.3.0] - 2024-06-05
+## [8.4.0] - 2024-06-03
 ### Added
-- **Advanced Performance Audit**: Implemented task-level execution timing for Analysis, Warping, and Mixing phases.
-- **Estimated Completion Time (ETA)**: Real-time calculation of remaining session duration.
-- **Dynamic Worker Scaling**: Intelligent concurrency management that adjusts parallel worker counts based on CPU/RAM headroom.
-- **Enhanced Monitoring Dashboard**: Integrated ETA, Average Task Duration, and Dynamic Concurrency metrics into the UI.
-- **Custom Transition Curves**: User-selectable fade shapes (Logarithmic, S-Curve, Linear) via the dashboard.
-- **Mastering Profiles**: Real-time selection of genre-optimized multi-band compression settings (Techno, House, Ambient, etc.).
+- **Session Archive Bundling**: Implemented `create_session_archive` in `utils.py` to zip the final mix, tracklist, and Rekordbox XML into a single distributable bundle.
+- **Real-Time VU Metering**: Integrated peak and RMS level calculation into the mixing loop for real-time telemetry.
+- **VU Meter Visualization**: Added a dual-bar Peak/RMS VU meter to the Web Dashboard with visual clipping alerts.
+- **Archive Download Link**: Direct access to session bundles from the Command Console.
+- **Enhanced Export Metadata**: The `LocalFileSink` now automatically initiates archive creation upon mix completion.
 
-## [8.2.0] - 2024-06-04
+## [8.3.0] - 2024-06-02
 ### Added
-- **Autonomous Auto-Pilot**: Intelligent real-time queue replenishment that automatically selects, analyzes, and warps compatible tracks from the library.
-- **Auto-Pilot Toggle**: Added master switch to the Live Deck for enabling/disabling autonomous operation.
-- **Surgical JSON Serialization**: Implemented `fix_numpy` utility to ensure consistent telemetry transmission for numpy-heavy MIR data.
+- **Autonomous Evolution**: Implemented "Smart Replenish" Auto-Pilot in `core.py` for infinite autonomous mixing.
+- **S-Curve Fades**: Added musical Sigmoid (S-Curve) fades as an alternative to logarithmic fades.
+- **Performance Audit 2.0**: Enhanced task duration tracking and ETA calculation for analysis and warping.
+- **Mastering Profiles**: Added Techno, House, Ambient, and High-Energy presets to the DSP chain.
 
-## [8.1.0] - 2024-06-03
-### Added
-- **Performance Tracking Engine**: Developed `autodj/performance.py` for granular timing of MIR and DSP tasks.
-- **Persistent Performance History**: Automated logging of session execution metrics to `logs/performance_history.json`.
+## [8.1.0] - 2024-06-02
+### Fixed
+- **JSON Serialization**: Resolved `numpy.int64` serialization issues in telemetry data using a custom encoder in `gui.py`.
 
 ## [7.9.0] - 2024-06-02
 ### Added

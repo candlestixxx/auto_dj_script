@@ -8,6 +8,3 @@ psyset_source/
 .jules/
 metamcp.db
 *.db
-*.log
-*.txt
-*.xml
