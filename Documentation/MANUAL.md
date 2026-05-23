@@ -1,4 +1,4 @@
-# 📖 Auto DJ Script: The Comprehensive User Manual
+# 📖 Auto DJ Script: The Comprehensive User Manual (7.0.0)
 
 ## 1. Introduction
 The Auto DJ Script is a professional-grade, autonomous audio mixing engine designed for DJs, broadcasters, and audiophiles. It leverages state-of-the-art Music Information Retrieval (MIR) and Digital Signal Processing (DSP) to create seamless, harmonically perfect sets.
@@ -22,6 +22,21 @@ Instead of mixing tracks in alphabetical order, the engine uses **Simulated Anne
 
 ### 🎹 Harmonic Key Sync
 If two adjacent tracks are in different but close keys (within 2 semitones), the engine automatically shifts the pitch of the incoming track to ensure a perfect harmonic match.
+
+### ⚡ High-Performance Parallel Engine (7.0.0)
+The engine utilizes a multi-core **ProcessPoolExecutor** architecture to parallelize the most intensive tasks:
+- **Parallel Metadata Analysis**: Scans your entire library across all available CPU cores simultaneously.
+- **Parallel Warp Engine**: Time-stretches and pitch-shifts tracks in parallel, drastically reducing preparation time.
+- **Segmented Mixing**: Transitions and track bodies are rendered as independent segments before being stitched into the final master.
+
+### 🔄 Sample-Accurate Cross-Correlation Looping
+If a track is too short for a planned transition, the engine identifies rhythmically stable "loopable phrases" using cross-correlation of onset envelopes, ensuring seamless, artifact-free tail extensions.
+
+### 🤖 AI Genre Inference (7.0.0)
+The engine utilizes a Multi-Layer Perceptron (MLP) neural classifier to identify stylistic archetypes (Ambient, Techno, House, High-Energy) with probabilistic accuracy. It provides real-time "AI Rationales" explaining the mathematical justification (e.g., spectral centroid) behind each classification.
+
+### 🌐 Distributed Cluster Rendering (7.0.0)
+Auto DJ can orchestrate rendering tasks across a cluster of nodes. The Web Dashboard includes a real-time monitor to track node status, core counts, and task distribution, ensuring the engine scales with your hardware.
 
 ### 🧠 Smart Phrase Detection
 The engine identifies "structural boundaries" (drops, breakdowns) using spectral novelty detection. Transitions are anchored to these points rather than arbitrary bar counts, ensuring a musically intuitive flow.
