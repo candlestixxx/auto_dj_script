@@ -46,12 +46,13 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Analyze tracks and log details without rendering audio.")
     parser.add_argument("--reorder", action="store_true", help="Intelligently reorder tracks for optimal harmonic compatibility and energy flow.")
     parser.add_argument("--gui", action="store_true", help="Launch the web-based dashboard.")
+    parser.add_argument("--port", type=int, default=8000, help="Port for the GUI server.")
 
     args = parser.parse_args()
 
     if args.gui:
         from .gui import run_gui
-        run_gui()
+        run_gui(port=args.port)
     elif not os.path.exists(args.input):
         os.makedirs(args.input)
         print(f"[INFO] Created directory '{args.input}'. Please place your audio files there and rerun the script.")

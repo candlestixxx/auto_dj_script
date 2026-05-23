@@ -1,5 +1,33 @@
 # Changelog
 
+## [8.3.0] - 2024-06-05
+### Added
+- **Advanced Performance Audit**: Implemented task-level execution timing for Analysis, Warping, and Mixing phases.
+- **Estimated Completion Time (ETA)**: Real-time calculation of remaining session duration.
+- **Dynamic Worker Scaling**: Intelligent concurrency management that adjusts parallel worker counts based on CPU/RAM headroom.
+- **Enhanced Monitoring Dashboard**: Integrated ETA, Average Task Duration, and Dynamic Concurrency metrics into the UI.
+- **Custom Transition Curves**: User-selectable fade shapes (Logarithmic, S-Curve, Linear) via the dashboard.
+- **Mastering Profiles**: Real-time selection of genre-optimized multi-band compression settings (Techno, House, Ambient, etc.).
+
+## [8.2.0] - 2024-06-04
+### Added
+- **Autonomous Auto-Pilot**: Intelligent real-time queue replenishment that automatically selects, analyzes, and warps compatible tracks from the library.
+- **Auto-Pilot Toggle**: Added master switch to the Live Deck for enabling/disabling autonomous operation.
+- **Surgical JSON Serialization**: Implemented `fix_numpy` utility to ensure consistent telemetry transmission for numpy-heavy MIR data.
+
+## [8.1.0] - 2024-06-03
+### Added
+- **Performance Tracking Engine**: Developed `autodj/performance.py` for granular timing of MIR and DSP tasks.
+- **Persistent Performance History**: Automated logging of session execution metrics to `logs/performance_history.json`.
+
+## [7.9.0] - 2024-06-02
+### Added
+- **Real-time EQ Gain Stage**: Integrated 3-band EQ control into the mastering chain.
+- **Performance Monitoring Engine**: Real-time calculation of "Speedup Factor" (mix time vs. audio duration).
+- **Interactive EQ Console**: Added vertical sliders for Low, Mid, and High band gains to the dashboard.
+- **Dynamic Transition Length Overrides**: Real-time adjustment of transition bars during an active session.
+- **Unified FX Status**: Real-time display of performance metrics and FX overrides in the telemetry dashboard.
+
 ## [7.8.0] - 2024-06-01
 ### Added
 - **Advanced Monitoring Dashboard**: Comprehensive system-wide health telemetry and resource charting.
@@ -135,6 +163,29 @@
 - **Phrase-Aware Dynamic Transitions**: The engine now analyzes phrase boundaries to automatically calculate the optimal transition length (8, 16, or 32 bars).
 - **Dynamic Transition UI**: Added a toggle to the Web Dashboard and integrated transition duration metadata into the live tracklist.
 - **Repository Synchronization**: Merged upstream changes and synchronized feature branches for unified development flow.
+
+## [8.0.0] - 2024-05-24
+### Added
+- **Integrated Autonomous Station**: Fully validated end-to-end autonomous mixing workflow.
+- **Pioneer/Rekordbox XML Bridge**: Automated generation of `final_dj_master_rekordbox.xml` containing high-precision transition markers.
+- **Environment Autoconfig**: Added automated detection and resolution for missing system dependencies (`ffmpeg`, `rubberband-cli`).
+- **E2E Integration Tests**: Implemented automated generation of valid test media and Playwright-based GUI verification.
+
+## [7.9.0] - 2024-05-24
+### Added
+- **Real-time FX Engine**: Integrated 3-band EQ gain stages into the mixing loop.
+- **Performance Telemetry**: Added "Speedup Factor" metric to the UI and engine logs.
+- **Interactive UI Overrides**: Added EQ sliders and transition length overrides to the Web Dashboard.
+
+## [7.8.0] - 2024-05-24
+### Added
+- **Advanced Monitoring Dashboard**: Real-time Disk I/O and Network telemetry via `psutil`.
+- **System Health Charts**: Chart.js-powered historical trends for CPU and RAM.
+- **Active Job Tracker**: Granular task visibility for background analysis.
+
+## [7.7.0] - 2024-05-24
+### Added
+- **Modular Plugin Architecture**: Refactored core into `SourcePlugin`, `OutputPlugin`, and `ToolPlugin` base classes.
 
 ## [5.8.0] - 2024-05-23
 ### Added

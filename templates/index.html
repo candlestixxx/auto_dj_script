@@ -39,7 +39,7 @@
 
     <div class="progress-track"><div class="progress-fill" id="fill"></div></div>
 
-    <div id="telemetry-dashboard" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px;">
+    <div id="telemetry-dashboard" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 20px;">
         <div class="controls-card" id="cpu-card" style="padding: 15px; text-align: center; transition: all 0.3s;">
             <div style="font-size: 0.7em; color: #888; font-weight: 800; margin-bottom: 10px;">CPU UTILIZATION</div>
             <div id="cpu-stat" style="font-size: 2em; font-weight: 800; color: #00ffcc;">0%</div>
@@ -56,6 +56,10 @@
             <div style="font-size: 0.7em; color: #888; font-weight: 800; margin-bottom: 10px;">NET THROUGHPUT</div>
             <div id="net-stat" style="font-size: 1.2em; font-weight: 800; color: #00ffcc;">0 KB/s</div>
         </div>
+        <div class="controls-card" id="speed-card" style="padding: 15px; text-align: center; border-color: #a020f0;">
+            <div style="font-size: 0.7em; color: #888; font-weight: 800; margin-bottom: 10px;">SPEEDUP FACTOR</div>
+            <div id="speed-stat" style="font-size: 2em; font-weight: 800; color: #a020f0;">0.0x</div>
+        </div>
     </div>
 
     <div id="health-charts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; height: 200px;">
@@ -67,10 +71,16 @@
         </div>
     </div>
 
-    <div id="cluster-monitor" style="background: #111118; padding: 15px; border-radius: 10px; border: 1px solid #1f1f2a; margin-bottom: 20px; font-size: 0.8em; display: flex; gap: 20px;">
-        <div style="color: #888; font-weight: 800;">CLUSTER NODES:</div>
-        <div id="nodes-container" style="display: flex; gap: 15px;">
-            <!-- Nodes will be injected here -->
+    <div id="cluster-monitor" style="background: #111118; padding: 15px; border-radius: 10px; border: 1px solid #1f1f2a; margin-bottom: 20px; font-size: 0.8em; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <div style="color: #888; font-weight: 800; white-space: nowrap;">CLUSTER NODES:</div>
+            <div id="nodes-container" style="display: flex; gap: 15px;">
+                <!-- Nodes will be injected here -->
+            </div>
+        </div>
+        <div style="display: flex; gap: 20px; align-items: center; justify-content: flex-end;">
+            <div style="color: #888; font-weight: 800; white-space: nowrap;">DYNAMIC CONCURRENCY:</div>
+            <div id="concurrency-stat" style="color: #00ffcc; font-weight: 800;">0/0 Cores</div>
         </div>
     </div>
 
@@ -78,6 +88,13 @@
         <h3 style="margin-top: 0; color: #00ffcc; display: flex; align-items: center; gap: 10px;">
             <span>🎚</span> LIVE DECK PLAYLIST
             <span style="font-size: 0.5em; color: #666; font-weight: 400; text-transform: uppercase;">Build your set in real-time</span>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 0.6em; color: #888; font-weight: 800; text-transform: uppercase;">Auto-Pilot</span>
+                <label class="switch">
+                    <input type="checkbox" id="auto-pilot-toggle" onchange="toggleAutoPilot()">
+                    <span class="slider round"></span>
+                </label>
+            </div>
         </h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div style="background: #08080a; padding: 15px; border-radius: 8px; border: 1px solid #1a1a24;">
@@ -111,9 +128,26 @@
                 </div>
             </div>
             <div id="incident-log" style="background: #0a0a10; border-radius: 10px; padding: 15px; border: 1px solid #1f1f2a; height: 130px; overflow-y: auto;">
-                <div style="font-size: 0.7em; color: #888; font-weight: 800; text-transform: uppercase; margin-bottom: 10px;">Incident Recovery Log</div>
+                <div style="font-size: 0.7em; color: #888; font-weight: 800; text-transform: uppercase; margin-bottom: 10px;">Incident Recovery Log (Rate: <span id="error-rate">0%</span>)</div>
                 <div id="incident-container" style="font-family: 'Fira Code', monospace; font-size: 0.75em; line-height: 1.4;">
                     <!-- Incidents go here -->
+                </div>
+            </div>
+            <div id="performance-audit" style="background: #111118; border-radius: 10px; padding: 15px; border: 1px solid #1f1f2a; height: 130px; overflow-y: auto;">
+                <div style="font-size: 0.7em; color: #a020f0; font-weight: 800; text-transform: uppercase; margin-bottom: 10px;">Performance Audit</div>
+                <div id="perf-container" style="font-size: 0.75em;">
+                    <div style="display: flex; justify-content: space-between; color: #888;">
+                        <span>Analysis:</span> <span id="perf-analysis" style="color: #eee;">0ms</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: #888;">
+                        <span>Warping:</span> <span id="perf-warping" style="color: #eee;">0ms</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: #888;">
+                        <span>Mixing:</span> <span id="perf-mixing" style="color: #eee;">0ms</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: #a020f0; font-weight: 800; margin-top: 5px; border-top: 1px solid #222; pt: 5px;">
+                        <span>Total Session:</span> <span id="perf-total">0ms</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -158,12 +192,18 @@
             </form>
 
             <div id="live-adjustments" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #252535;">
-                <label style="font-size: 0.7em; color: #00ffcc; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; display: block;">Live Parameter Overrides</label>
+                <label style="font-size: 0.7em; color: #00ffcc; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; display: block;">Live Parameter & EQ Overrides</label>
 
                 <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <button type="button" id="pause-btn" class="btn-prime" style="background: #333; font-size: 0.8em; padding: 10px;" onclick="togglePause()">
-                        ⏸ PAUSE EXECUTION
-                    </button>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button type="button" id="pause-btn" class="btn-prime" style="background: #333; font-size: 0.8em; padding: 10px;" onclick="togglePause()">
+                            ⏸ PAUSE
+                        </button>
+                        <div style="display: flex; align-items: center; gap: 10px; background: #000; border-radius: 6px; padding: 0 10px; border: 1px solid #333;">
+                            <span style="font-size: 0.6em; color: #888; font-weight: 800;">BARS</span>
+                            <input type="number" id="live-bars" value="16" min="4" max="64" step="4" style="border:none; padding: 5px; width: 50px;" onchange="updateLiveParams()">
+                        </div>
+                    </div>
 
                     <div>
                         <div style="display: flex; justify-content: space-between; font-size: 0.7em; color: #888; margin-bottom: 5px;">
@@ -171,6 +211,45 @@
                             <span id="live-bpm-val">145</span>
                         </div>
                         <input type="range" id="live-bpm" min="80" max="200" value="145" style="width: 100%; accent-color: #00ffcc;" oninput="updateLiveParams()">
+                    </div>
+
+                    <div style="background: #111118; padding: 10px; border-radius: 8px; border: 1px solid #252535;">
+                        <div style="font-size: 0.6em; color: #a020f0; font-weight: 800; margin-bottom: 8px;">REAL-TIME EQ GAINS</div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                            <div>
+                                <div style="font-size: 0.5em; color: #888; text-align: center;">LOW</div>
+                                <input type="range" id="live-low" min="0" max="2" step="0.05" value="1.0" style="width: 100%; height: 80px; writing-mode: bt-lr; appearance: slider-vertical; accent-color: #ff5555;" oninput="updateLiveParams()">
+                            </div>
+                            <div>
+                                <div style="font-size: 0.5em; color: #888; text-align: center;">MID</div>
+                                <input type="range" id="live-mid" min="0" max="2" step="0.05" value="1.0" style="width: 100%; height: 80px; writing-mode: bt-lr; appearance: slider-vertical; accent-color: #00ffcc;" oninput="updateLiveParams()">
+                            </div>
+                            <div>
+                                <div style="font-size: 0.5em; color: #888; text-align: center;">HIGH</div>
+                                <input type="range" id="live-high" min="0" max="2" step="0.05" value="1.0" style="width: 100%; height: 80px; writing-mode: bt-lr; appearance: slider-vertical; accent-color: #a020f0;" oninput="updateLiveParams()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label style="font-size: 0.6em; color: #888; font-weight: 800; display: block; margin-bottom: 5px;">MASTER PROFILE</label>
+                            <select id="live-profile" style="font-size: 0.8em; padding: 5px;" onchange="updateLiveParams()">
+                                <option value="Default">Default</option>
+                                <option value="Techno">Techno</option>
+                                <option value="House">House</option>
+                                <option value="Ambient">Ambient</option>
+                                <option value="High-Energy">High-Energy</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.6em; color: #888; font-weight: 800; display: block; margin-bottom: 5px;">TRANSITION CURVE</label>
+                            <select id="live-curve" style="font-size: 0.8em; padding: 5px;" onchange="updateLiveParams()">
+                                <option value="Logarithmic">Logarithmic</option>
+                                <option value="S-Curve">S-Curve</option>
+                                <option value="Linear">Linear</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div>
@@ -321,7 +400,18 @@
             if (d.telemetry) {
                 document.getElementById('cpu-stat').innerText = d.telemetry.cpu_usage.toFixed(1) + '%';
                 document.getElementById('mem-stat').innerText = d.telemetry.memory_usage.toFixed(1) + '%';
-                document.getElementById('thread-stat').innerText = d.telemetry.active_threads;
+
+                const diskKb = (d.telemetry.disk_read + d.telemetry.disk_write) / 1024;
+                document.getElementById('disk-stat').innerText = diskKb.toFixed(1) + ' KB/s';
+
+                const netKb = (d.telemetry.net_sent + d.telemetry.net_recv) / 1024;
+                document.getElementById('net-stat').innerText = netKb.toFixed(1) + ' KB/s';
+
+                if (d.performance_metrics) {
+                    document.getElementById('speed-stat').innerText = d.performance_metrics.speedup_factor.toFixed(1) + 'x';
+                }
+
+                updateCharts(d.telemetry.cpu_usage, d.telemetry.memory_usage);
 
                 // Health Alert Styling
                 const cpuCard = document.getElementById('cpu-card');
@@ -345,7 +435,8 @@
             }
 
             if (d.monitoring) {
-                document.getElementById('error-rate').innerText = d.monitoring.error_rate;
+                const errorRateEl = document.getElementById('error-rate');
+                if (errorRateEl) errorRateEl.innerText = d.monitoring.error_rate;
                 document.getElementById('incident-container').innerHTML = d.monitoring.incidents.map(i => `
                     <div style="margin-bottom: 5px; color: ${i.severity === 'ERROR' ? '#ff5555' : '#ffcc00'}">
                         [${i.timestamp}] ${i.module}: ${i.message}
@@ -360,19 +451,70 @@
                     btn.innerText = isPaused ? '▶ RESUME EXECUTION' : '⏸ PAUSE EXECUTION';
                     btn.style.background = isPaused ? '#a020f0' : '#333';
                 }
+
+                const apToggle = document.getElementById('auto-pilot-toggle');
+                if (apToggle) apToggle.checked = d.live_params.auto_pilot;
             }
 
-            if (d.cluster && d.cluster.length > 0) {
-                document.getElementById('nodes-container').innerHTML = d.cluster.map(n => `
-                    <div class="cluster-node" style="display: flex; align-items: center; gap: 8px; background: #1a1a24; padding: 5px 10px; border-radius: 5px;">
-                        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${n.failed_tasks > 3 ? '#ff5555' : (n.status === 'Idle' ? '#00ffcc' : '#a020f0')};"></span>
-                        <span style="color: #eee; font-weight: 600;">${n.id}</span>
-                        <span style="color: #666;">[${n.total_tasks - n.failed_tasks}/${n.total_tasks}]</span>
-                        <button onclick="resetNode('${n.id}')" style="background: none; border: none; color: #888; cursor: pointer; font-size: 0.8em; padding: 0;">↺</button>
-                    </div>
-                `).join('');
-            } else {
-                document.getElementById('nodes-container').innerHTML = '<span style="color: #666;">No nodes connected</span>';
+            if (d.cluster) {
+                const nodes = Array.isArray(d.cluster) ? d.cluster : (d.cluster.nodes || []);
+                if (nodes.length > 0) {
+                    document.getElementById('nodes-container').innerHTML = nodes.map(n => `
+                        <div class="cluster-node" style="display: flex; align-items: center; gap: 8px; background: #1a1a24; padding: 5px 10px; border-radius: 5px;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${n.failed_tasks > 3 ? '#ff5555' : (n.status === 'Idle' ? '#00ffcc' : '#a020f0')};"></span>
+                            <span style="color: #eee; font-weight: 600;">${n.id}</span>
+                            <span style="color: #666;">[${n.total_tasks - n.failed_tasks}/${n.total_tasks}]</span>
+                            <button onclick="resetNode('${n.id}')" style="background: none; border: none; color: #888; cursor: pointer; font-size: 0.8em; padding: 0;">↺</button>
+                        </div>
+                    `).join('');
+                } else {
+                    document.getElementById('nodes-container').innerHTML = '<span style="color: #666;">No nodes connected</span>';
+                }
+
+                if (d.concurrency) {
+                    const c = d.concurrency;
+                    document.getElementById('concurrency-stat').innerText = `${c.current_limit}/${c.system_cores} Cores (${Math.round(c.scaling_factor * 100)}%)`;
+                }
+            }
+
+            if (d.performance_history && d.performance_history.totals) {
+                const t = d.performance_history.totals;
+                document.getElementById('perf-analysis').innerText = Math.round(t.analysis_ms) + 'ms';
+                document.getElementById('perf-warping').innerText = Math.round(t.warping_ms) + 'ms';
+                document.getElementById('perf-mixing').innerText = Math.round(t.mixing_ms) + 'ms';
+                document.getElementById('perf-total').innerText = Math.round(t.total_ms) + 'ms';
+            }
+
+            if (d.performance_metrics) {
+                const m = d.performance_metrics;
+                const speedStat = document.getElementById('speed-stat');
+                if (speedStat) speedStat.innerText = m.speedup_factor.toFixed(1) + 'x';
+
+                // Update Audit with real-time metrics
+                const perfContainer = document.getElementById('perf-container');
+                if (perfContainer) {
+                    let avgEl = document.getElementById('perf-avg-task');
+                    if (!avgEl) {
+                         const div = document.createElement('div');
+                         div.style = "display: flex; justify-content: space-between; color: #888;";
+                         div.innerHTML = `<span>Avg Task:</span> <span id="perf-avg-task" style="color: #eee;">${m.avg_task_time}s</span>`;
+                         perfContainer.insertBefore(div, document.getElementById('perf-total').parentNode);
+                         avgEl = document.getElementById('perf-avg-task');
+                    } else {
+                         avgEl.innerText = m.avg_task_time + 's';
+                    }
+
+                    let etaEl = document.getElementById('perf-eta');
+                    if (!etaEl) {
+                         const div = document.createElement('div');
+                         div.style = "display: flex; justify-content: space-between; color: #00ffcc;";
+                         div.innerHTML = `<span>ETA:</span> <span id="perf-eta" style="color: #00ffcc; font-weight: 800;">${m.estimated_completion}</span>`;
+                         perfContainer.insertBefore(div, document.getElementById('perf-total').parentNode);
+                         etaEl = document.getElementById('perf-eta');
+                    } else {
+                         etaEl.innerText = m.estimated_completion;
+                    }
+                }
             }
 
             if (d.tracklist && d.tracklist.length > 0) {
@@ -433,6 +575,12 @@
     async function updateLiveParams() {
         const bpm = document.getElementById('live-bpm').value;
         const intensity = document.getElementById('live-intensity').value;
+        const low = document.getElementById('live-low').value;
+        const mid = document.getElementById('live-mid').value;
+        const high = document.getElementById('live-high').value;
+        const bars = document.getElementById('live-bars').value;
+        const profile = document.getElementById('live-profile').value;
+        const curve = document.getElementById('live-curve').value;
 
         document.getElementById('live-bpm-val').innerText = bpm;
         document.getElementById('live-intensity-val').innerText = intensity;
@@ -440,8 +588,22 @@
         const fd = new FormData();
         fd.append('target_bpm', bpm);
         fd.append('mastering_intensity', intensity);
+        fd.append('low_gain', low);
+        fd.append('mid_gain', mid);
+        fd.append('high_gain', high);
+        fd.append('transition_bars', bars);
+        fd.append('mastering_profile', profile);
+        fd.append('transition_curve', curve);
 
         await fetch('/update_params', { method: 'POST', body: fd });
+    }
+
+    async function toggleAutoPilot() {
+        const active = document.getElementById('auto-pilot-toggle').checked;
+        const fd = new FormData();
+        fd.append('auto_pilot', active ? 'true' : 'false');
+        await fetch('/update_params', { method: 'POST', body: fd });
+        logTerminal(`[SYSTEM] Auto-Pilot ${active ? 'ENGAGED' : 'DISENGAGED'}`, active ? '#00ffcc' : '#ffcc00');
     }
 
     function initCharts() {

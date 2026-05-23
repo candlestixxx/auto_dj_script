@@ -1,10 +1,11 @@
 """
-Web-based GUI for the Auto DJ Script using FastAPI and WebSockets (7.6.0).
-7.6.0: The Visual Era (Spectral Terrain 3D).
+Web-based GUI for the Auto DJ Script using FastAPI and WebSockets (8.3.0).
+8.3.0: Autonomous Auto-Pilot & Performance Audit 2.0.
 """
 from fastapi import FastAPI, Request, Form, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.encoders import jsonable_encoder
 import uvicorn
 import os
 import asyncio
@@ -16,6 +17,8 @@ from .dsp import ArchetypeRegistry
 from .cluster import cluster
 from .monitoring import monitor
 from .plugins import PluginRegistry
+from .performance import perf
+from .scaling import concurrency
 
 app = FastAPI(title=f"Auto DJ v{__version__} Console")
 templates = Jinja2Templates(directory="templates")
@@ -25,6 +28,11 @@ mixing_status = {
     "tracklist": [],
     "playlist": [],
     "active_tasks": {},
+    "performance_metrics": {
+        "speedup_factor": 0.0,
+        "avg_task_time": 0.0,
+        "estimated_completion": "N/A"
+    },
     "progress": 0,
     "version": __version__,
     "parallel_cores": os.cpu_count() or 1,
@@ -42,7 +50,14 @@ mixing_status = {
     "live_params": {
         "mastering_intensity": 0.5,
         "target_bpm": config.TARGET_BPM,
-        "paused": False
+        "low_gain": 1.0,
+        "mid_gain": 1.0,
+        "high_gain": 1.0,
+        "transition_bars": config.TRANSITION_BARS,
+        "paused": False,
+        "auto_pilot": False,
+        "mastering_profile": "Default",
+        "transition_curve": "Logarithmic"
     }
 }
 
@@ -133,11 +148,25 @@ async def get_status():
     status_data = dict(mixing_status)
     status_data["cluster"] = cluster.get_status()
     status_data["monitoring"] = monitor.get_status()
+    status_data["performance_history"] = perf.current_session
+    status_data["concurrency"] = concurrency.get_status()
+
     # Populate available tracks if idle
     if mixing_status["status"] == "Idle":
         import glob
         status_data["available_tracks"] = [os.path.basename(f) for f in glob.glob(os.path.join(config.INPUT_FOLDER, "*")) if any(f.endswith(ext) for ext in config.SUPPORTED_EXTENSIONS)]
-    return JSONResponse(status_data)
+
+    # Surgical fix for numpy int64 serialization in JSONResponse
+    def fix_numpy(obj):
+        if isinstance(obj, dict):
+            return {k: fix_numpy(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [fix_numpy(x) for x in obj]
+        elif hasattr(obj, "item"): # numpy types
+            return obj.item()
+        return obj
+
+    return JSONResponse(content=jsonable_encoder(fix_numpy(status_data)))
 
 @app.post("/playlist/add")
 async def playlist_add(filename: str = Form(...)):
@@ -162,15 +191,36 @@ async def cluster_reset(node_id: str = Form(...)):
 async def update_params(
     mastering_intensity: float = Form(None),
     target_bpm: float = Form(None),
-    paused: bool = Form(None)
+    low_gain: float = Form(None),
+    mid_gain: float = Form(None),
+    high_gain: float = Form(None),
+    transition_bars: int = Form(None),
+    paused: bool = Form(None),
+    auto_pilot: bool = Form(None),
+    mastering_profile: str = Form(None),
+    transition_curve: str = Form(None)
 ):
     """Real-time parameter adjustment endpoint."""
     if mastering_intensity is not None:
         mixing_status["live_params"]["mastering_intensity"] = mastering_intensity
     if target_bpm is not None:
         mixing_status["live_params"]["target_bpm"] = target_bpm
+    if low_gain is not None:
+        mixing_status["live_params"]["low_gain"] = low_gain
+    if mid_gain is not None:
+        mixing_status["live_params"]["mid_gain"] = mid_gain
+    if high_gain is not None:
+        mixing_status["live_params"]["high_gain"] = high_gain
+    if transition_bars is not None:
+        mixing_status["live_params"]["transition_bars"] = transition_bars
     if paused is not None:
         mixing_status["live_params"]["paused"] = paused
+    if auto_pilot is not None:
+        mixing_status["live_params"]["auto_pilot"] = auto_pilot
+    if mastering_profile is not None:
+        mixing_status["live_params"]["mastering_profile"] = mastering_profile
+    if transition_curve is not None:
+        mixing_status["live_params"]["transition_curve"] = transition_curve
     return {"status": "Updated", "params": mixing_status["live_params"]}
 
 @app.websocket("/ws")
@@ -251,5 +301,5 @@ async def download_master():
     return JSONResponse({"error": "Mix not found."}, status_code=404)
 
 def run_gui(host="0.0.0.0", port=8000):
-    print(f"[*] Auto DJ v{__version__} Console launching...")
+    print(f"[*] Auto DJ v{__version__} Console launching on {host}:{port}...")
     uvicorn.run(app, host=host, port=port)

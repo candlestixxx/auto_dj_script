@@ -1,16 +1,18 @@
-# 📝 Immediate Tasks (7.8.0)
+# 📝 Immediate Tasks (8.3.0)
 
 ## 🚀 Features (Immediate Implementation)
 - [x] **Modular Plugin System**: Abstracted Sources, Sinks, and Tools (7.7.0).
-- [ ] **Advanced Monitoring Dashboard**: (7.8.0)
-    - [ ] **Disk I/O & Network Telemetry**: Track throughput using `psutil`.
-    - [ ] **Real-time Resource Charting**: Integrate Chart.js for health visualization.
-    - [ ] **Task Status Tracker**: Granular progress display for background jobs.
-    - [ ] **System Health Guardrail Indicators**: Visual alerts for CPU/RAM throttling.
+- [x] **Advanced Monitoring Dashboard**: System health and resource telemetry (7.8.0).
+- [x] **Performance & FX Engine**: Real-time EQ and Speedup Factor (7.9.0).
+- [x] **Integrated Autonomous Station**: Full E2E validation and Pioneer/Rekordbox Bridge (8.0.0).
+- [x] **Autonomous Auto-Pilot**: Real-time track replenishment logic (8.2.0).
+- [x] **Performance Monitoring 2.0**: ETA, Avg Task Duration, and Dynamic Scaling (8.3.0).
+- [ ] **S3 Source Plugin**: Remote track discovery.
 
 ## 🛠 Improvements & Refactoring
 - [x] **Logarithmic SA Cooling**: Implement a more robust cooling schedule for large sets (>30 tracks).
 - [x] **Mastering True-Peak Limiter**: Upgrade the simple hard limiter to a true-peak look-ahead limiter in `dsp.py`.
+- [x] **Dynamic Worker Scaling**: Real-time adjustment of concurrency based on system load.
 
 ## 📚 Documentation
 - [x] **Operational Directive Consolidation**.
@@ -19,8 +21,3 @@
 
 ---
 *Keep on goin'! Don't stop the party!*
-
-## 🌠 Future Horizon (v6.x)
-- [ ] **AI Genre Inference**: Implement CNN for automatic transition style detection.
-- [ ] **Live Broadcast Node**: Direct Icecast/RTMP streaming.
-- [x] **Multi-band Compression**: Advanced dynamics processing in the mastering chain.
