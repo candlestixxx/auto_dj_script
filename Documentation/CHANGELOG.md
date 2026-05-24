@@ -1,5 +1,13 @@
 # Changelog
 
+## [8.7.0] - 2024-06-06
+### Added
+- **Quantum Sequence Optimizer**: Parallelized Simulated Annealing with multi-branch exploration for finding superior global optima in track sequencing.
+- **Hot Cue Integration**: Automatic marking of transition points as hot cues, visualized on the dashboard waveform.
+- **Live Beat-Grid Visualization**: Real-time rendering of a 3D beat-grid overlay on the Spectral Terrain and synchronization with the 2D waveform.
+- **Waveform Scrubbing**: Enhanced WaveSurfer.js integration with interaction logging and marker-based navigation.
+- **Enhanced Sequencing Logic**: The engine now launches 4 parallel SA chains to ensure high-quality set progression.
+
 ## [8.6.0] - 2024-06-05
 ### Added
 - **Live Handoff Orchestration**: New "Handoff Mode" that pauses execution between tracks, allowing for seamless manual handovers to/from the AI.

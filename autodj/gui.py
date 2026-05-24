@@ -34,6 +34,8 @@ mixing_status = {
     },
     "progress": 0,
     "vu": {"peak": -100.0, "rms": -100.0},
+    "hot_cues": [],  # List of {time_ms, label}
+    "beat_grid": [], # List of relative beat positions for the current track
     "last_archive": None,
     "version": __version__,
     "parallel_cores": os.cpu_count() or 1,

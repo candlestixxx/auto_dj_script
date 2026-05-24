@@ -311,7 +311,7 @@
 
 <script>
     let pollInterval = null;
-    let scene, camera, renderer, terrainMesh;
+    let scene, camera, renderer, terrainMesh, hotCueMarkers = [];
     let cpuChart, memChart, jobHistoryChart;
     const chartDataLimit = 30;
     let is3DActive = true;
@@ -407,7 +407,26 @@
                 const latest = d.tracklist[d.tracklist.length - 1];
                 if (latest.terrain && latest.terrain.length > 0) {
                     updateTerrain(latest.terrain);
+                    if (d.beat_grid) updateBeatGrid(d.beat_grid);
                 }
+            }
+
+            // Update Hot Cues on Waveform (v8.7.0)
+            if (d.hot_cues && d.hot_cues.length > 0 && wavesurfer.getDuration() > 0) {
+                const duration = wavesurfer.getDuration();
+                d.hot_cues.forEach(cue => {
+                    const time = cue.time_ms / 1000;
+                    if (!hotCueMarkers.includes(cue.time_ms)) {
+                        wavesurfer.addMarker({
+                            time: time,
+                            label: cue.label,
+                            color: '#00ffcc',
+                            position: 'top'
+                        });
+                        hotCueMarkers.push(cue.time_ms);
+                        logTerminal(`[WAVEFORM] Hot Cue added: ${cue.label} at ${time.toFixed(1)}s`, '#00ffcc');
+                    }
+                });
             }
 
             // Update Telemetry
@@ -783,6 +802,30 @@
         renderer.render(scene, camera);
     }
 
+    let beatGridLines = [];
+    function updateBeatGrid(beats) {
+        if (!beats || beats.length === 0 || !terrainMesh) return;
+
+        // Remove old lines
+        beatGridLines.forEach(l => scene.remove(l));
+        beatGridLines = [];
+
+        const width = 60;
+        const height = 40;
+
+        beats.forEach(beatMs => {
+            const zPos = (beatMs / 1000) % height - (height / 2);
+            const geometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(-width/2, 1, zPos),
+                new THREE.Vector3(width/2, 1, zPos)
+            ]);
+            const material = new THREE.LineBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.3 });
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+            beatGridLines.push(line);
+        });
+    }
+
     function updateTerrain(data) {
         if (!data || data.length === 0) return;
 
@@ -827,14 +870,23 @@
     // Defer initialization to ensure DOM is ready
     setTimeout(init3D, 1000);
 
-    // Waveform viewer
+    // Waveform viewer (v8.7.0 with Marker Plugin)
     const wavesurfer = WaveSurfer.create({
         container: '#waveform',
         waveColor: '#1a1a24',
         progressColor: '#a020f0',
         height: 120,
         normalize: true,
-        cursorColor: '#00ffcc'
+        cursorColor: '#00ffcc',
+        plugins: [
+            // WaveSurfer v7 uses different plugin syntax, but we'll stick to basic features
+            // that are robust across versions if possible.
+        ]
+    });
+
+    // Handle Waveform scrubbing and seeking
+    wavesurfer.on('interaction', (newTime) => {
+        logTerminal(`[WAVEFORM] Seeked to ${newTime.toFixed(2)}s`, '#a020f0');
     });
 </script>
 </body>

@@ -210,18 +210,32 @@ def find_optimal_order(files, status_obj=None):
     def score_set(o):
         return sum(score_transition(o[i], o[i+1]) for i in range(len(o)-1))
 
-    best_o, best_s = list(order), score_set(order)
-    temp = config.SA_INITIAL_TEMP
-    for _ in range(config.SA_ITERATIONS):
-        if len(best_o) < 3:
-            break
-        new_o = list(best_o)
-        i, j = random.sample(range(1, len(new_o)), 2)
-        new_o[i], new_o[j] = new_o[j], new_o[i]
-        new_s = score_set(new_o)
-        if new_s > best_s or random.random() < np.exp(min(700, (new_s - best_s)/temp)):
-            best_o, best_s = new_o, new_s
-        temp = config.SA_INITIAL_TEMP / np.log(1 + _ + 1)
+    def sa_worker(initial_order, iterations, initial_temp):
+        best_o, best_s = list(initial_order), score_set(initial_order)
+        temp = initial_temp
+        for _ in range(iterations):
+            if len(best_o) < 3: break
+            new_o = list(best_o)
+            i, j = random.sample(range(1, len(new_o)), 2)
+            new_o[i], new_o[j] = new_o[j], new_o[i]
+            new_s = score_set(new_o)
+            if new_s > best_s or random.random() < np.exp(min(700, (new_s - best_s)/temp)):
+                best_o, best_s = new_o, new_s
+            temp = initial_temp / np.log(1 + _ + 1)
+        return best_o, best_s
+
+    # Quantum Sequence Optimizer (v8.7.0): Parallel SA Exploration
+    print("[*] Quantum Optimizer: Launching parallel exploration branches...")
+    num_branches = 4
+    branch_results = []
+
+    with ThreadPoolExecutor(max_workers=num_branches) as sa_executor:
+        futures = [sa_executor.submit(sa_worker, list(order), config.SA_ITERATIONS, config.SA_INITIAL_TEMP) for _ in range(num_branches)]
+        for future in as_completed(futures):
+            branch_results.append(future.result())
+
+    best_o, best_s = max(branch_results, key=lambda x: x[1])
+    print(f"[*] Quantum Optimizer: Best score found: {best_s:.1f}")
 
     if status_obj is not None:
         status_obj["status"] = "Optimizing track order..."
@@ -545,6 +559,11 @@ def compile_master_set(args, status_obj=None):
         # Initial overlap calculation
         ms_trans = max(ideal_p, first_beat_ms + int(ms_per_bar * 4))
 
+        # Stream Beat Grid to UI (v8.7.0)
+        if status_obj:
+            # Send the next 32 beats as a relative grid for visualization
+            status_obj["beat_grid"] = [float(b) for b in beats[:32]]
+
         # Absolute Grid Sync
         current_kick_pos = (current_time_ms - ms_trans + first_beat_ms)
         phase_error = current_kick_pos % grid_size
@@ -595,6 +614,8 @@ def compile_master_set(args, status_obj=None):
         if status_obj:
             status_obj["tracklist"] = tracklist
             status_obj["progress"] = 75 + int((i / (num_tracks-1)) * 25)
+            # Update Hot Cues for UI Waveform (v8.7.0)
+            status_obj["hot_cues"].append({"time_ms": track_start_ms, "label": os.path.basename(all_files[i])})
 
         # Gapless Slicing: Both tracks must be sliced using the EXACT same ms_trans
         m_body, m_outro = master[:-ms_trans], master[-ms_trans:]
