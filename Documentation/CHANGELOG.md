@@ -1,6 +1,12 @@
 # Changelog
 
-## [8.11.0] - 2025-01-24
+## [8.13.0] - 2025-01-25
+### Added
+- **Advanced Performance Analytics**: Integrated real-time tracking of task durations (Analysis, Warping, Mixing) with rolling averages.
+- **Performance Dashboard**: New UI panel with Bar Chart visualization for phase-specific latencies.
+- **Engine Instrumentation**: Precise perf_counter hooks in the parallel mixing pipeline.
+
+## [8.13.0] - 2025-01-24
 ### Added
 - **Preference-Aware Orchestration**: Enhanced `SmartReplenishTool` with harmonic scoring and user preference integration (Genre/Energy).
 - **Expanded Scheduler API**: Added `set_preference`, `clear_queue`, and `trigger_replenish` actions.

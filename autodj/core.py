@@ -159,9 +159,7 @@ def analyze_track_worker(f):
             'bpm': native_bpm,
             'key': get_musical_key(y if y.ndim == 1 else librosa.to_mono(y), sr),
             'energy': get_energy_profile(y if y.ndim == 1 else librosa.to_mono(y), sr),
-            'genre': genre,
-            'rationale': rationale,
-            'terrain': terrain
+            'genre': get_genre_archetype(y if y.ndim == 1 else librosa.to_mono(y), sr)
         }
     except Exception as e:
         print(f"[ERROR] analyze_track_worker failed for {f}: {e}")
@@ -178,7 +176,10 @@ def find_optimal_order(files, status_obj=None):
         if status_obj:
             status_obj["active_tasks"][f] = "Analyzing..."
 
+        start_time = time.perf_counter()
         r = analyze_track_worker(f)
+        monitor.record_task_duration("analysis", time.perf_counter() - start_time)
+
         results.append(r)
 
         if status_obj:
@@ -294,13 +295,14 @@ def compile_master_set(args, status_obj=None):
 
     warped_results = [None] * num_tracks
     executor = cluster.get_executor()
-    futures = {executor.submit(warp_worker, task): idx for idx, task in enumerate(warp_tasks)}
+    futures = {executor.submit(warp_worker, task): (idx, time.perf_counter()) for idx, task in enumerate(warp_tasks)}
     for future in as_completed(futures):
-        idx = futures[future]
+        idx, start_time = futures[future]
         if status_obj:
             status_obj["active_tasks"][all_files[idx]] = "Warping..."
 
         y_w, sr = future.result()
+        monitor.record_task_duration("warping", time.perf_counter() - start_time)
 
         if status_obj:
             status_obj["active_tasks"].pop(all_files[idx], None)
@@ -484,8 +486,10 @@ def compile_master_set(args, status_obj=None):
         if status_obj:
             status_obj["active_tasks"][f"Transition {i-1}->{i}"] = "Mixing..."
 
+        start_mix_time = time.perf_counter()
         future = mix_executor.submit(transition_render_worker, render_args)
         mix_bus_raw, _ = future.result()
+        monitor.record_task_duration("mixing", time.perf_counter() - start_mix_time)
 
         if status_obj:
              status_obj["active_tasks"].pop(f"Transition {i-1}->{i}", None)

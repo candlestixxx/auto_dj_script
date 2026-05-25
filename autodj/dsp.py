@@ -90,14 +90,6 @@ def trim_silence(segment, silence_threshold=-65.0, chunk_size=10):
     start_ms = int(start_sample * 1000 / segment.frame_rate / segment.channels)
     end_ms = int(end_sample * 1000 / segment.frame_rate / segment.channels)
 
-
-    start_sample = active_indices[0]
-    end_sample = active_indices[-1]
-
-    # Convert samples to ms
-    start_ms = int(start_sample * 1000 / segment.frame_rate / segment.channels)
-    end_ms = int(end_sample * 1000 / segment.frame_rate / segment.channels)
-
     return segment[start_ms:end_ms]
 
 def normalize_lufs(audio_array, sr, target_lufs=-14.0):
