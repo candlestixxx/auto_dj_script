@@ -1,6 +1,6 @@
 """
-Web-based GUI for the Auto DJ Script using FastAPI and WebSockets.
-v6.6.1: Dynamic Status Polling and Interactive Tracklist.
+Web-based GUI for the Auto DJ Script using FastAPI and WebSockets (7.6.0).
+7.6.0: The Visual Era (Spectral Terrain 3D).
 """
 from fastapi import FastAPI, Request, Form, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
@@ -8,10 +8,13 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 import uvicorn
 import os
 import asyncio
+import psutil
 from . import config
 from .core import compile_master_set
 from .version import __version__
 from .dsp import ArchetypeRegistry
+from .cluster import cluster
+from .monitoring import monitor
 
 app = FastAPI(title=f"Auto DJ v{__version__} Console")
 templates = Jinja2Templates(directory="templates")
@@ -19,7 +22,22 @@ templates = Jinja2Templates(directory="templates")
 mixing_status = {
     "status": "Idle",
     "tracklist": [],
-    "progress": 0
+    "playlist": [],
+    "progress": 0,
+    "version": __version__,
+    "parallel_cores": os.cpu_count() or 1,
+    "telemetry": {
+        "cpu_usage": 0,
+        "memory_usage": 0,
+        "active_threads": 0,
+        "is_healthy": True,
+        "is_throttled": False
+    },
+    "live_params": {
+        "mastering_intensity": 0.5,
+        "target_bpm": config.TARGET_BPM,
+        "paused": False
+    }
 }
 
 class ConnectionManager:
@@ -60,9 +78,74 @@ async def index(request: Request):
         }
     )
 
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(update_telemetry())
+
+async def update_telemetry():
+    """Background task to poll system performance metrics."""
+    psutil.cpu_percent()  # Initialize first call
+    while True:
+        try:
+            cpu = psutil.cpu_percent()
+            mem = psutil.virtual_memory().percent
+            mixing_status["telemetry"]["cpu_usage"] = cpu
+            mixing_status["telemetry"]["memory_usage"] = mem
+            mixing_status["telemetry"]["active_threads"] = len(psutil.Process().threads())
+
+            # Health Logic (v7.2.0)
+            is_healthy = (cpu < config.MAX_CPU_LOAD and mem < config.MAX_RAM_LOAD)
+            mixing_status["telemetry"]["is_healthy"] = is_healthy
+            mixing_status["telemetry"]["is_throttled"] = not is_healthy
+
+        except Exception:
+            pass
+        await asyncio.sleep(config.HEALTH_CHECK_INTERVAL)
+
 @app.get("/status")
 async def get_status():
-    return JSONResponse(mixing_status)
+    status_data = dict(mixing_status)
+    status_data["cluster"] = cluster.get_status()
+    status_data["monitoring"] = monitor.get_status()
+    # Populate available tracks if idle
+    if mixing_status["status"] == "Idle":
+        import glob
+        status_data["available_tracks"] = [os.path.basename(f) for f in glob.glob(os.path.join(config.INPUT_FOLDER, "*")) if any(f.endswith(ext) for ext in config.SUPPORTED_EXTENSIONS)]
+    return JSONResponse(status_data)
+
+@app.post("/playlist/add")
+async def playlist_add(filename: str = Form(...)):
+    """Adds a track to the dynamic playlist."""
+    mixing_status["playlist"].append(filename)
+    return {"status": "Added", "playlist": mixing_status["playlist"]}
+
+@app.post("/playlist/remove")
+async def playlist_remove(index: int = Form(...)):
+    """Removes a track from the dynamic playlist."""
+    if 0 <= index < len(mixing_status["playlist"]):
+        mixing_status["playlist"].pop(index)
+    return {"status": "Removed", "playlist": mixing_status["playlist"]}
+
+@app.post("/cluster/reset")
+async def cluster_reset(node_id: str = Form(...)):
+    """Resets failed states for a node."""
+    cluster.reset_node(node_id)
+    return {"status": "Reset", "node": node_id}
+
+@app.post("/update_params")
+async def update_params(
+    mastering_intensity: float = Form(None),
+    target_bpm: float = Form(None),
+    paused: bool = Form(None)
+):
+    """Real-time parameter adjustment endpoint."""
+    if mastering_intensity is not None:
+        mixing_status["live_params"]["mastering_intensity"] = mastering_intensity
+    if target_bpm is not None:
+        mixing_status["live_params"]["target_bpm"] = target_bpm
+    if paused is not None:
+        mixing_status["live_params"]["paused"] = paused
+    return {"status": "Updated", "params": mixing_status["live_params"]}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -119,9 +202,17 @@ async def start_mixing(
     mixing_status["status"] = "Preparing Engine..."
     mixing_status["progress"] = 0
     mixing_status["tracklist"] = []
+    mixing_status["live_params"]["target_bpm"] = bpm
+    mixing_status["live_params"]["mastering_intensity"] = mastering_intensity
 
     background_tasks.add_task(compile_master_set, Args(), status_obj=mixing_status)
     return {"message": "Engine ignited."}
+
+@app.post("/cluster/join")
+async def cluster_join(node_id: str = Form(...), cores: int = Form(...)):
+    """API endpoint for remote nodes to join the cluster."""
+    cluster.register_node(node_id, cores)
+    return {"status": "Accepted", "node": node_id}
 
 @app.get("/download")
 async def download_master():

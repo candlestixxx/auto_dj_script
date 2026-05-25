@@ -1,9 +1,9 @@
-""" Core Orchestration Engine | Auto DJ Script (v6.6.1)
+""" Core Orchestration Engine | Auto DJ Script (7.6.0)
 ==================================================
 The core engine is responsible for tracklist optimization (Simulated Annealing),
 parallel audio preprocessing, and the final sample-accurate mix reconstruction.
 
-Version 5.8.x features: 3-band mastering and enhanced genre detection.
+Version 7.6.0 features: The Visual Era (Spectral Terrain 3D).
 """
 
 import os, glob, re, librosa, random, json, subprocess
@@ -11,14 +11,14 @@ import soundfile as sf
 import numpy as np
 from pydub import AudioSegment
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from . import config
 
 from .analysis import (
     get_native_bpm, get_musical_key, analyze_geometry,
     get_camelot_key, is_harmonically_compatible,
     get_energy_profile, detect_phrases, get_genre_archetype,
-    find_sync_offset, identify_loopable_phrase
+    find_sync_offset, identify_loopable_phrase, extract_spectral_terrain
 )
 from .dsp import (
     apply_dsp_filter, trim_silence, normalize_lufs,
@@ -26,8 +26,38 @@ from .dsp import (
     apply_limiter, apply_multiband_compression,
     apply_log_fade, ArchetypeRegistry
 )
-from .utils import pydub_to_ndarray, ndarray_to_pydub
+from .utils import pydub_to_ndarray, ndarray_to_pydub, export_rekordbox_xml
 from .version import __version__
+from .cluster import cluster
+from .monitoring import monitor
+import time
+
+
+def wait_for_health(status_obj):
+    """Execution Health Guardrail (v7.2.0)."""
+    if status_obj is None:
+        return
+
+    while True:
+        live = status_obj.get("live_params", {})
+        telemetry = status_obj.get("telemetry", {})
+
+        paused = live.get("paused", False)
+        is_healthy = telemetry.get("is_healthy", True)
+
+        if not paused and is_healthy:
+            break
+
+        # Update status message to reflect guardrail state
+        orig_status = status_obj.get("status", "Processing")
+        if paused:
+            status_obj["status"] = "Session Paused (Manual)"
+        elif not is_healthy:
+            status_obj["status"] = "Auto-Throttled (High System Load)"
+
+        time.sleep(1)
+        # Restore status after waiting
+        status_obj["status"] = orig_status
 
 
 def get_semitone_diff(key1, key2):
@@ -101,7 +131,8 @@ def warp_worker(args):
         y_w = apply_limiter(normalize_lufs(y_w, sr, config.TARGET_LUFS))
         return y_w, sr
     except Exception as e:
-        print(f"[ERROR] warp_worker failed for {path}: {e}")
+        import traceback
+        monitor.log_incident("ERROR", "WarpWorker", f"Failed to warp {os.path.basename(path)}: {e}", traceback.format_exc())
         return None, str(e)
 
 
@@ -112,12 +143,17 @@ def analyze_track_worker(f):
         y, sr = librosa.load(f, sr=None, mono=False)
         native_bpm, _, _ = get_native_bpm(y, sr)
         
+        genre, rationale = get_genre_archetype(y if y.ndim == 1 else librosa.to_mono(y), sr, bpm=native_bpm)
+        terrain = extract_spectral_terrain(y, sr)
+
         return {
             'path': f,
             'bpm': native_bpm,
             'key': get_musical_key(y if y.ndim == 1 else librosa.to_mono(y), sr),
             'energy': get_energy_profile(y if y.ndim == 1 else librosa.to_mono(y), sr),
-            'genre': get_genre_archetype(y if y.ndim == 1 else librosa.to_mono(y), sr)
+            'genre': genre,
+            'rationale': rationale,
+            'terrain': terrain
         }
     except Exception as e:
         print(f"[ERROR] analyze_track_worker failed for {f}: {e}")
@@ -127,20 +163,23 @@ def analyze_track_worker(f):
 def find_optimal_order(files, status_obj=None):
     """Sequencing optimization via Simulated Annealing."""
     total = len(files)
-    print(f"[*] Analyzing {total} tracks...")
+    print(f"[*] Analyzing {total} tracks (Parallel)...")
 
-    # Run analysis sequentially (librosa is GIL-bound, threading doesn't help)
+    # Run analysis in parallel to leverage multi-core CPUs
     results = []
-    for i, f in enumerate(files):
-        r = analyze_track_worker(f)
-        results.append(r)
-        if status_obj is not None:
-            status_obj["status"] = f"Analyzing Library ({i+1}/{total})"
-            status_obj["progress"] = int((i / total) * 50)  # Analysis = 0-50%
-        if 'error' not in r:
-            print(f"  [{i+1}/{total}] {os.path.basename(f)}: BPM={r['bpm']:.1f}, Key={r['key']}, Genre={r['genre']}")
-        else:
-            print(f"  [{i+1}/{total}] {os.path.basename(f)}: ERROR - {r['error']}")
+    with ProcessPoolExecutor() as executor:
+        futures = {executor.submit(analyze_track_worker, f): f for f in files}
+        for i, future in enumerate(as_completed(futures)):
+            r = future.result()
+            results.append(r)
+            if status_obj is not None:
+                status_obj["status"] = f"Analyzing Library ({i+1}/{total})"
+                status_obj["progress"] = int(((i + 1) / total) * 50)  # Analysis = 0-50%
+            path = futures[future]
+            if 'error' not in r:
+                print(f"  [{i+1}/{total}] {os.path.basename(path)}: BPM={r['bpm']:.1f}, Key={r['key']}, Genre={r['genre']}")
+            else:
+                print(f"  [{i+1}/{total}] {os.path.basename(path)}: ERROR - {r['error']}")
 
     meta = [r for r in results if 'error' not in r]
     if not meta:
@@ -186,12 +225,18 @@ def find_optimal_order(files, status_obj=None):
 
 
 def compile_master_set(args, status_obj=None):
-    """The High-Performance Mixing Pipeline (v5.8.0)."""
+    """The High-Performance Mixing Pipeline (7.5.0)."""
     folder = args.input
-    all_files = []
-    for ext in config.SUPPORTED_EXTENSIONS:
-        all_files.extend(glob.glob(os.path.join(folder, f"*{ext}")))
-        all_files.extend(glob.glob(os.path.join(folder, f"*{ext.upper()}")))
+
+    # Live Deck Initialization (v7.5.0)
+    # If a playlist is provided in status_obj, use it; otherwise fallback to folder scan.
+    if status_obj and status_obj.get("playlist"):
+        all_files = [os.path.join(folder, f) for f in status_obj["playlist"]]
+    else:
+        all_files = []
+        for ext in config.SUPPORTED_EXTENSIONS:
+            all_files.extend(glob.glob(os.path.join(folder, f"*{ext}")))
+            all_files.extend(glob.glob(os.path.join(folder, f"*{ext.upper()}")))
 
     if not all_files:
         if status_obj:
@@ -219,11 +264,15 @@ def compile_master_set(args, status_obj=None):
 
     num_tracks = len(all_files)
 
-    # Phase 2: Warping (50-75%)
+    # Phase 2: Cluster-Accelerated Warping (50-75%)
     if status_obj:
-        status_obj["status"] = f"Warping {num_tracks} tracks"
+        status_obj["status"] = f"Warping {num_tracks} tracks (Cluster: {cluster.nodes[0].id})"
 
-    start_bpm, end_bpm = args.bpm, (args.end_bpm or args.bpm)
+    wait_for_health(status_obj)
+
+    # Check for live parameter overrides (v7.1.0)
+    start_bpm = status_obj.get("live_params", {}).get("target_bpm", args.bpm) if status_obj else args.bpm
+    end_bpm = (args.end_bpm or start_bpm)
 
     warp_tasks = []
     for i in range(num_tracks):
@@ -232,51 +281,105 @@ def compile_master_set(args, status_obj=None):
         tar_key = meta_list[i-1]['key'] if i > 0 else None
         warp_tasks.append((all_files[i], meta_list[i]['bpm'], t_s_bpm, t_e_bpm, meta_list[i]['key'], tar_key, True))
 
-    warped_results = []
-    for i, task in enumerate(warp_tasks):
-        result = warp_worker(task)
-        warped_results.append(result)
-        if status_obj is not None:
-            status_obj["status"] = f"Warping track {i+1}/{num_tracks}"
-            status_obj["progress"] = 50 + int((i / num_tracks) * 25)
+    warped_results = [None] * num_tracks
+    executor = cluster.get_executor()
+    futures = {executor.submit(warp_worker, task): i for i, task in enumerate(warp_tasks)}
+    for future in as_completed(futures):
+        idx = futures[future]
+        y_w, sr = future.result()
 
-    # Phase 3: Mixing (75-100%)
+        # Fault Tolerance: Local Fallback (v7.4.0)
+        if y_w is None:
+            monitor.record_retry()
+            monitor.log_incident("WARN", "CoreEngine", f"Cluster task {idx} failed. Retrying locally...")
+            y_w, sr = warp_worker(warp_tasks[idx])
+
+        if y_w is not None:
+            monitor.record_success()
+        else:
+            monitor.record_failure()
+
+        warped_results[idx] = (y_w, sr)
+        if status_obj is not None:
+            completed = sum(1 for x in warped_results if x is not None)
+            status_obj["status"] = f"Warping track {completed}/{num_tracks}"
+            status_obj["progress"] = 50 + int((completed / num_tracks) * 25)
+
+    # Phase 3: Segmented Cluster Mixing (75-100%)
     if status_obj:
-        status_obj["status"] = "Mixing Master Stream"
+        status_obj["status"] = "Mixing Master Stream (Cluster)"
 
     tracklist, master, processed_tracks, current_time_ms = [], None, [], 0
-    for i in range(num_tracks):
+
+    # Using Cluster-Aware persistent executor (7.0.0 Optimized)
+    import io
+    mix_executor = cluster.get_executor()
+    i = 0
+    while i < num_tracks:
+        wait_for_health(status_obj)
+
+        # Live Deck Dynamic Injection (v7.5.0)
+        # Check if the user has inserted tracks into the playlist during the session.
+        # This allows adding tracks while the mix is being rendered.
+        if status_obj and status_obj.get("playlist"):
+            # If current i is beyond the pre-analyzed track count, we need to analyze new tracks
+            if i >= len(all_files) and i < len(status_obj["playlist"]):
+                new_track_name = status_obj["playlist"][i]
+                new_track_path = os.path.join(folder, new_track_name)
+                print(f"[*] Live Injection detected: {new_track_name}")
+                # Analyze and warp on-the-fly
+                new_meta = analyze_track_worker(new_track_path)
+                meta_list.append(new_meta)
+                all_files.append(new_track_path)
+
+                # Dynamic Warping for injected track
+                t_s_bpm = start_bpm + (end_bpm - start_bpm) * (i / (i+1)) # Simple ramp adjustment
+                t_e_bpm = t_s_bpm
+                warp_task = (new_track_path, new_meta['bpm'], t_s_bpm, t_e_bpm, new_meta['key'], meta_list[i-1]['key'], True)
+                y_w, sr = warp_worker(warp_task)
+                warped_results.append((y_w, sr))
+                num_tracks = len(status_obj["playlist"]) # Update dynamic limit
+
         y_w, sr = warped_results[i]
         if y_w is None:
             print(f"[WARN] Skipping track {i}: warp failed")
             continue
 
-        path = f"scratch_{i}_{os.getpid()}.wav"
-        sf.write(path, y_w.T, sr, format='WAV', subtype='PCM_16')
-        nxt = trim_silence(AudioSegment.from_wav(path))
-        os.remove(path)
+        # In-Memory Buffer Conversion (v7.0.0 Optimized)
+        # Avoids disk I/O for temporary track preparation
+        buf = io.BytesIO()
+        sf.write(buf, y_w.T, sr, format='WAV', subtype='PCM_16')
+        buf.seek(0)
+        nxt = trim_silence(AudioSegment.from_file(buf, format="wav"))
         processed_tracks.append((nxt, y_w, sr))
 
         if master is None:
             master = nxt
             tracklist.append({'timestamp': "00:00:00", 'file': os.path.basename(all_files[i]),
                                'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
-                               'genre': meta_list[i]['genre'], 'start_ms': 0})
+                               'genre': meta_list[i]['genre'],
+                               'rationale': meta_list[i].get('rationale', ''),
+                               'terrain': meta_list[i].get('terrain', []),
+                               'start_ms': 0})
             current_time_ms = len(master)
             continue
 
         prev_nxt, prev_y_w, _ = processed_tracks[i-1]
-        t_s_bpm = start_bpm + (end_bpm - start_bpm) * (i / num_tracks)
+
+        # Poll live BPM for dynamic ramp adjustments (v7.1.0)
+        current_target_bpm = status_obj.get("live_params", {}).get("target_bpm", start_bpm) if status_obj else start_bpm
+        t_s_bpm = current_target_bpm + (end_bpm - current_target_bpm) * (i / num_tracks)
+
         beats, theoretical_ms_trans, first_beat_ms = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
         ph = detect_phrases(y_w, sr)
 
         # 1. Precise Phase Alignment (v7.0.0)
         ms_per_beat = 60000.0 / t_s_bpm
         ms_per_bar = ms_per_beat * args.beats_per_bar
-        grid_size = ms_per_bar * 4 
-        
+        grid_size = ms_per_bar * 4
+
         fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)] if len(beats) > 0 else theoretical_ms_trans
-        
+
         # Snapping
         ideal_p = fixed_p
         if ph.any():
@@ -286,11 +389,11 @@ def compile_master_set(args, status_obj=None):
 
         # Initial overlap calculation
         ms_trans = max(ideal_p, first_beat_ms + int(ms_per_bar * 4))
-        
+
         # Absolute Grid Sync
         current_kick_pos = (current_time_ms - ms_trans + first_beat_ms)
         phase_error = current_kick_pos % grid_size
-        
+
         # Always increase overlap to align with the PREVIOUS grid point
         # This keeps the mix solid and avoids gaps
         if phase_error != 0:
@@ -300,7 +403,7 @@ def compile_master_set(args, status_obj=None):
         m_slice = pydub_to_ndarray(master[-ms_trans:])
         n_slice = pydub_to_ndarray(nxt[:ms_trans])
         sync_nudge = find_sync_offset(m_slice, n_slice, sr, t_s_bpm)
-        
+
         # If nudge is positive, it means intro is delayed, so we start it EARLIER (+ ms_trans)
         ms_trans += sync_nudge
 
@@ -319,7 +422,10 @@ def compile_master_set(args, status_obj=None):
 
         tracklist.append({'timestamp': ms_to_timestamp(track_start_ms), 'file': os.path.basename(all_files[i]),
                            'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
-                           'genre': meta_list[i]['genre'], 'start_ms': track_start_ms})
+                           'genre': meta_list[i]['genre'],
+                           'rationale': meta_list[i].get('rationale', ''),
+                           'terrain': meta_list[i].get('terrain', []),
+                           'start_ms': track_start_ms})
 
         if status_obj:
             status_obj["tracklist"] = tracklist
@@ -333,33 +439,33 @@ def compile_master_set(args, status_obj=None):
         mode = getattr(args, 'archetype', 'auto')
         if mode == 'auto' and meta_list[i]['genre'] == 'High-Energy':
             mode = 'progressive' # Professional default for Psytrance
-            
-        arch_plugin = ArchetypeRegistry.get(mode)
-        if arch_plugin:
-            dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass}
-            f_m_raw, f_n_raw = arch_plugin.apply(pydub_to_ndarray(m_outro), pydub_to_ndarray(n_intro), sr, **dsp_kwargs)
-            f_m, f_n = ndarray_to_pydub(f_m_raw, sr), ndarray_to_pydub(f_n_raw, sr)
+
+        # Parallel Transition Rendering (7.0.0)
+        dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass}
+        render_args = (pydub_to_ndarray(m_outro), pydub_to_ndarray(n_intro), sr, mode, ms_trans, ideal_p, dsp_kwargs)
+
+        # Using the cluster executor
+        future = mix_executor.submit(transition_render_worker, render_args)
+        mix_bus_raw, _ = future.result()
+
+        # Fault Tolerance: Fallback to Sequential Render (v7.4.0)
+        if mix_bus_raw is None:
+            monitor.log_incident("WARN", "CoreEngine", f"Transition render {i} failed in cluster. Falling back...")
+            mix_bus_raw, _ = transition_render_worker(render_args)
+
+        if mix_bus_raw is not None:
+            mix_bus = ndarray_to_pydub(mix_bus_raw, sr)
+            monitor.record_success()
         else:
-             # Classic Fallback
+             monitor.record_failure()
+             # Classic Fallback if parallel render fails
              f_m = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(m_outro), sr, 'lowpass', args.lowpass), sr)
              f_n = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(n_intro), sr, 'highpass', args.highpass), sr)
+             mix_bus = f_m.fade_out(ms_trans).overlay(f_n.fade_in(ms_trans))
 
-        # 3. Master Overlay (Mix-Bus Logic)
-        # Pydub's .overlay() returns the length of the caller.
-        # We must ensure we use the full ms_trans duration.
-        f_m_log = apply_log_fade(pydub_to_ndarray(f_m), fade_type='out')
-        f_n_log = apply_log_fade(pydub_to_ndarray(f_n), fade_type='in')
-        
-        f_m_final = ndarray_to_pydub(f_m_log, sr)
-        f_n_final = ndarray_to_pydub(f_n_log, sr)
-
-        # Create a 'Mix Bus' segment of the exact transition length
-        # This prevents Pydub from truncating the mix if f_m is short
-        mix_bus = AudioSegment.silent(duration=ms_trans, frame_rate=sr)
-        mix_bus = mix_bus.overlay(f_m_final).overlay(f_n_final)
-        
         master = m_body + mix_bus + n_body
         current_time_ms = len(master)
+        i += 1
 
     if master:
         try:
@@ -386,9 +492,26 @@ def compile_master_set(args, status_obj=None):
             for item in tracklist:
                 f.write(f"[{item['timestamp']}] {item['file']} ({item['key']}) [{item['genre']}]\n")
 
+        # Integration Bridge: Rekordbox XML Export (v7.3.0)
+        xml_path = os.path.splitext(args.output)[0] + "_rekordbox.xml"
+        try:
+            # Enriched tracklist for XML
+            enriched_tl = []
+            for i, item in enumerate(tracklist):
+                entry = dict(item)
+                entry['path'] = all_files[i]
+                entry['bpm'] = str(meta_list[i]['bpm'])
+                entry['duration_ms'] = len(processed_tracks[i][0]) if i < len(processed_tracks) else 0
+                enriched_tl.append(entry)
+
+            export_rekordbox_xml(enriched_tl, xml_path)
+            print(f"[*] Integration: Rekordbox XML exported to {xml_path}")
+        except Exception as e:
+            print(f"[WARN] Rekordbox export failed: {e}")
+
 
 def transition_render_worker(args):
-    """Parallel worker for rendering a single transition overlap."""
+    """Parallel worker for rendering a single transition overlap (7.0.0)."""
     outro_raw, intro_raw, sr, mode, ms_trans, ideal_p, dsp_kwargs = args
     try:
         arch_plugin = ArchetypeRegistry.get(mode)
@@ -399,14 +522,27 @@ def transition_render_worker(args):
                 sr,
                 **dsp_kwargs
             )
-            f_m, f_n = ndarray_to_pydub(f_m_raw, sr), ndarray_to_pydub(f_n_raw, sr)
         else:
-            f_m, f_n = ndarray_to_pydub(outro_raw, sr), ndarray_to_pydub(intro_raw, sr)
+            # Classic Fallback Filters
+            f_m_raw = apply_dsp_filter(outro_raw, sr, 'lowpass', dsp_kwargs.get('lowpass', 200.0))
+            f_n_raw = apply_dsp_filter(intro_raw, sr, 'highpass', dsp_kwargs.get('highpass', 150.0))
 
-        # Apply fades and overlay
-        rendered = f_m.fade_out(ms_trans).overlay(f_n.fade_in(ms_trans))
-        return pydub_to_ndarray(rendered), sr
+        # Apply Professional Logarithmic Fades with Dip (7.0.0)
+        f_m_faded = apply_log_fade(f_m_raw, fade_type='out')
+        f_n_faded = apply_log_fade(f_n_raw, fade_type='in')
+
+        # Precise Mix-Bus Summation
+        summed = f_m_faded + f_n_faded
+
+        # Safety: Apply Limiter to prevent digital clipping in the mix-bus
+        summed = apply_limiter(summed)
+
+        # Ensure correct shape (stereo) and duration
+        return summed, sr
     except Exception as e:
+        import traceback
+        print(f"[ERROR] transition_render_worker failed: {e}")
+        traceback.print_exc()
         return None, str(e)
 
 def ms_to_timestamp(ms):
