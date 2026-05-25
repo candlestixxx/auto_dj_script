@@ -183,7 +183,16 @@ def find_optimal_order(files, status_obj=None):
         
         r = analyze_track_worker(f)
         results.append(r)
-        # ... rest of function ...
+        
+        if status_obj:
+            status_obj["active_tasks"].pop(f, None)
+            status_obj["status"] = f"Analyzing Library ({i+1}/{total})"
+            status_obj["progress"] = int(((i + 1) / total) * 50)
+            
+        if 'error' not in r:
+            print(f"  [{i+1}/{total}] {os.path.basename(f)}: BPM={r['bpm']:.1f}, Key={r['key']}, Genre={r['genre']}")
+        else:
+            print(f"  [{i+1}/{total}] {os.path.basename(f)}: ERROR - {r['error']}")
 
     meta = [r for r in results if 'error' not in r]
     if not meta:
@@ -337,13 +346,14 @@ def compile_master_set(args, status_obj=None):
         if master is None:
             master = nxt
             # Anchor the global grid to the first beat of the first track
-            _, _, master_grid_offset = analyze_geometry(nxt, sr, start_bpm, args.beats_per_bar, args.transition_bars)
-            tracklist.append({'timestamp': "00:00:00", 'file': os.path.basename(all_files[i]),
+            _, _, master_grid_offset, _ = analyze_geometry(nxt, sr, start_bpm, args.beats_per_bar, args.transition_bars)
+            track_meta = {'timestamp': "00:00:00", 'file': os.path.basename(all_files[i]),
                                'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
                                'genre': meta_list[i]['genre'],
                                'rationale': meta_list[i].get('rationale', ''),
                                'terrain': meta_list[i].get('terrain', []),
-                               'start_ms': 0})
+                               'start_ms': 0}
+            tracklist.append(track_meta)
             current_time_ms = len(master)
             continue
 
@@ -353,13 +363,16 @@ def compile_master_set(args, status_obj=None):
         current_target_bpm = status_obj.get("live_params", {}).get("target_bpm", start_bpm) if status_obj else start_bpm
         t_s_bpm = current_target_bpm + (end_bpm - current_target_bpm) * (i / num_tracks)
 
-        beats, theoretical_ms_trans, first_beat_ms = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
+        beats, theoretical_ms_trans, first_beat_ms, last_beat_ms = analyze_geometry(nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
         ph = detect_phrases(y_w, sr)
 
         # 1. Theoretical Transition Prep (v7.2.0)
         ms_per_beat = 60000.0 / t_s_bpm
         ms_per_bar = ms_per_beat * args.beats_per_bar
-        grid_size = ms_per_bar * 8 # Switch to 8-bar phrasing (Standard Psy)
+        grid_size = ms_per_bar * 8 
+        
+        # Energy-Aware Slicing: Find the last kick of the current master
+        _, _, _, master_last_kick = analyze_geometry(master, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
         
         fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)] if len(beats) > 0 else theoretical_ms_trans
         ideal_p = fixed_p
@@ -370,39 +383,34 @@ def compile_master_set(args, status_obj=None):
 
         # Initial overlap
         ms_trans = max(ideal_p, first_beat_ms + int(ms_per_bar * 4))
-
+        
         # 2. Intelligent Tail Extension
-        if ms_trans > (len(master) - tracklist[-1]['start_ms']):
+        remaining_outro = len(master) - master_last_kick
+        if ms_trans > remaining_outro:
             loop_bar = identify_loopable_phrase(prev_y_w, sr, t_s_bpm, args.beats_per_bar)
-            needed_ms = ms_trans - (len(master) - tracklist[-1]['start_ms'])
+            needed_ms = ms_trans - remaining_outro
             num_loops = int(np.ceil(needed_ms / (len(loop_bar) / sr * 1000))) + 1
             ext_segment = np.tile(loop_bar, num_loops)
             master += ndarray_to_pydub(ext_segment, sr)
             current_time_ms = len(master)
 
-        # 3. Final Precise Phase Alignment (Relative to First Kick of Mix)
-        # Expected Kick = master_grid_offset + (N * grid_size)
+        # 3. Final Precise Phase Alignment
         current_kick_pos = (current_time_ms - ms_trans + first_beat_ms)
         relative_pos = current_kick_pos - master_grid_offset
         phase_error = relative_pos % grid_size
-        
         if phase_error != 0:
              ms_trans += int(phase_error)
 
-        # 4. Sample-Accurate Nudging (High-Res Kick Alignment)
+        # 4. Sample-Accurate Nudging
         m_slice = pydub_to_ndarray(master[-ms_trans:])
         n_slice = pydub_to_ndarray(nxt[:ms_trans])
         sync_nudge = find_sync_offset(m_slice, n_slice, sr, t_s_bpm)
         
-        # Increase nudge limit to +/- 2 beats (approx 826ms @ 145BPM)
-        # This allows the engine to jump over a kick if the initial phrasing was off.
         max_nudge = int(ms_per_beat * 2.0)
         sync_nudge = max(-max_nudge, min(max_nudge, sync_nudge))
-        
-        # CORRECT DIRECTION: Subtract nudge to align transients
         ms_trans -= sync_nudge
 
-        print(f"  [SYNC] 8-Bar Phrase Locked. Offset: {master_grid_offset}ms. Nudge: {sync_nudge}ms. Final Overlap: {ms_trans/1000:.1f}s")
+        print(f"  [SYNC] Energy-Anchor Lock. Tail: {len(master)-master_last_kick}ms. Nudge: {sync_nudge}ms.")
 
         ms_trans = min(ms_trans, len(master))
         track_start_ms = len(master) - ms_trans
@@ -462,7 +470,6 @@ def compile_master_set(args, status_obj=None):
 
         master = m_body + mix_bus + n_body
         current_time_ms = len(master)
-        i += 1
 
     if master:
         # Modular Output Export (v7.7.0)

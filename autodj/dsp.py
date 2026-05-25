@@ -1,12 +1,13 @@
 """
-Digital Signal Processing (DSP) Module | Auto DJ Script (v9.0.0 - Lightweight).
+Digital Signal Processing (DSP) Module | Auto DJ Script (v9.1.0 - Lightweight).
 ==============================================================
 Optimized for high-performance mixing in restricted environments.
-- Removed librosa/pyloudnorm/scipy.signal dependencies for stability.
+- Stateful IIR filtering for smooth frequency glides.
+- RMS-based normalization for stability.
 """
 import numpy as np
 from .utils import ndarray_to_pydub, pydub_to_ndarray
-from .np_signal import get_butter_coeffs, apply_iir_filter
+from .np_signal import get_butter_coeffs, apply_iir_filter, StatefulIIR
 
 class TransitionArchetype:
     """Base class for all transition plugins."""
@@ -87,21 +88,47 @@ class DualFilterSweep(TransitionArchetype):
 
     @staticmethod
     def apply(outro_array, intro_array, sr, **kwargs):
+        """
+        Stateful Progressive Sweep. Ensures zero-discontinuity glides.
+        """
         total_samples = outro_array.shape[1] if outro_array.ndim == 2 else len(outro_array)
         if total_samples == 0: return outro_array, intro_array
             
-        block_size = int(sr * 0.1) # Faster blocks
+        block_size = int(sr * 0.1)
         f_m = np.copy(outro_array)
         f_n = np.copy(intro_array)
+        num_ch = f_m.shape[0] if f_m.ndim == 2 else 1
+        
+        # Initial dummy filters to hold state
+        b_m, a_m = get_butter_coeffs(20000.0, sr, btype='lowpass')
+        b_n, a_n = get_butter_coeffs(15000.0, sr, btype='highpass')
+        filter_m = StatefulIIR(b_m, a_m, num_channels=num_ch)
+        filter_n = StatefulIIR(b_n, a_n, num_channels=num_ch)
         
         for start in range(0, total_samples, block_size):
             end = min(total_samples, start + block_size)
             progress = start / total_samples
+            
+            # Dynamic Frequencies
             lp_f = 20000.0 if progress < 0.7 else 20000 * (1500 / 20000) ** ((progress - 0.7) / 0.3)
             hp_f = 15000 * (20 / 15000) ** progress
             
-            f_m[:, start:end] = apply_dsp_filter(f_m[:, start:end], sr, 'lowpass', lp_f)
-            f_n[:, start:end] = apply_dsp_filter(f_n[:, start:end], sr, 'highpass', hp_f)
+            # Update filter coefficients while preserving state (z)
+            filter_m.b, filter_m.a = get_butter_coeffs(lp_f, sr, btype='lowpass')
+            filter_n.b, filter_n.a = get_butter_coeffs(hp_f, sr, btype='highpass')
+            
+            chunk_m = f_m[:, start:end] if f_m.ndim == 2 else f_m[start:end].reshape(1, -1)
+            chunk_n = f_n[:, start:end] if f_n.ndim == 2 else f_n[start:end].reshape(1, -1)
+            
+            if chunk_m.shape[1] > 0:
+                res_m = filter_m.process(chunk_m)
+                if f_m.ndim == 2: f_m[:, start:end] = res_m
+                else: f_m[start:end] = res_m.flatten()
+                
+            if chunk_n.shape[1] > 0:
+                res_n = filter_n.process(chunk_n)
+                if f_n.ndim == 2: f_n[:, start:end] = res_n
+                else: f_n[start:end] = res_n.flatten()
                 
         return f_m, f_n
 
