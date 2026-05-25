@@ -1,4 +1,4 @@
-""" Core Orchestration Engine | Auto DJ Script (v5.5.0)
+""" Core Orchestration Engine | Auto DJ Script (v6.6.1)
 ==================================================
 The core engine is responsible for tracklist optimization (Simulated Annealing),
 parallel audio preprocessing, and the final sample-accurate mix reconstruction.
@@ -12,13 +12,13 @@ import numpy as np
 from pydub import AudioSegment
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
-import config
+from . import config
 
 from .analysis import (
     get_native_bpm, get_musical_key, analyze_geometry,
     get_camelot_key, is_harmonically_compatible,
     get_energy_profile, detect_phrases, get_genre_archetype,
-    find_sync_offset
+    find_sync_offset, identify_loopable_phrase
 )
 from .dsp import (
     apply_dsp_filter, trim_silence, normalize_lufs,
@@ -59,9 +59,14 @@ def dynamic_warp(y, sr, native_bpm, start_target_bpm, end_target_bpm):
              tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fout:
             sf.write(fin.name, data.T, sr, format='WAV', subtype='PCM_16')
             fin.close(); fout.close()
-            ratio = 1.0 / rate
-            # Use --high-quality for better transient preservation
-            subprocess.run(["rubberband", "--quiet", "--tempo", str(ratio), fin.name, fout.name], check=True)
+            # Use ffmpeg with rubberband filter for high-fidelity time-stretching
+            # Note: ffmpeg's rubberband filter uses 'tempo' for rate.
+            subprocess.run([
+                "ffmpeg", "-y", "-loglevel", "quiet", 
+                "-i", fin.name, 
+                "-af", f"rubberband=tempo={rate}", 
+                fout.name
+            ], check=True)
             out_y, _ = librosa.load(fout.name, sr=sr, mono=False)
             os.remove(fin.name); os.remove(fout.name)
             
@@ -203,6 +208,13 @@ def compile_master_set(args, status_obj=None):
     if meta_list is None:
         if status_obj:
             status_obj["status"] = "Error: Analysis failed"
+        return
+
+    if args.dry_run:
+        print("[*] Dry-run complete. Analysis successful.")
+        if status_obj:
+            status_obj["status"] = "Dry-run Complete"
+            status_obj["progress"] = 100
         return
 
     num_tracks = len(all_files)

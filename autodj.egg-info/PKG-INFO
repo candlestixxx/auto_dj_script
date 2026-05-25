@@ -1,6 +1,25 @@
-# 🌌 Auto DJ v6.6.1: The Autonomous Audiophile Engine
+Metadata-Version: 2.4
+Name: autodj
+Version: 6.6.0
+Summary: Automated seamless DJ transitions with frequency splitting and harmonic mixing.
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: librosa>=0.11.0
+Requires-Dist: numpy>=2.4.6
+Requires-Dist: pydub>=0.25.1
+Requires-Dist: soundfile>=0.13.1
+Requires-Dist: scipy>=1.17.1
+Requires-Dist: tqdm>=4.67.3
+Requires-Dist: pyloudnorm>=0.2.0
+Requires-Dist: fastapi>=0.136.1
+Requires-Dist: uvicorn>=0.47.0
+Requires-Dist: jinja2>=3.1.6
+Requires-Dist: python-multipart>=0.0.29
+Requires-Dist: websockets>=16.0
 
-[![Version](https://img.shields.io/badge/version-6.6.1-blueviolet)](./VERSION.md)
+# 🌌 Auto DJ v6.6.0: The Autonomous Audiophile Engine
+
+[![Version](https://img.shields.io/badge/version-6.6.0-blueviolet)](./VERSION.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-success)](./tests)
 

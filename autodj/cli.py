@@ -4,7 +4,7 @@ Provides a robust set of arguments for controlling the mixing engine.
 """
 import argparse
 import os
-import config
+from . import config
 from .version import __version__
 from .core import compile_master_set
 

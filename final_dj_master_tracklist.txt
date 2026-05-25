@@ -1,6 +1,5 @@
-Auto DJ v5.6.0 Master Tracklist
+Auto DJ v6.6.1 Master Tracklist
 ========================================
-[00:00:00] 1200 Micrograms - 2003 - Heroes of the Imagination - 8 - WWW.flac (G Minor (6A)) [Techno]
-[00:07:31] 1200 Micrograms - 2003 - Heroes of the Imagination - 8 - WWW.flac (G Minor (6A)) [Techno]
-[00:15:02] Mad Tribe - 2017 - Amazing Tales From Outer Space - 3 - Out Of This World.flac (G# Minor (1A)) [High-Energy]
-[00:26:21] Mad Tribe - 2017 - Amazing Tales From Outer Space - 3 - Out Of This World.flac (G# Minor (1A)) [High-Energy]
+[00:00:00] 00 - Bionix - Ispanika ( Live Edit ).mp3 (F# Major (2B)) [High-Energy]
+[00:06:07] 00 - Bionix - Unleashed (Original Mix).mp3 (F Minor (4A)) [High-Energy]
+[00:13:11] 00 - Bionix - Magnetik Fusion (Original Mix ).mp3 (D# Major (5B)) [High-Energy]

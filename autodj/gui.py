@@ -1,6 +1,6 @@
 """
 Web-based GUI for the Auto DJ Script using FastAPI and WebSockets.
-v5.5.0: Dynamic Status Polling and Interactive Tracklist.
+v6.6.1: Dynamic Status Polling and Interactive Tracklist.
 """
 from fastapi import FastAPI, Request, Form, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 import uvicorn
 import os
 import asyncio
-import config
+from . import config
 from .core import compile_master_set
 from .version import __version__
 from .dsp import ArchetypeRegistry

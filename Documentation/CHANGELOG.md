@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.6.1] - 2026-05-22
+### Fixed
+- **Module Import Error**: Resolved missing import for \`identify_loopable_phrase\` in \`autodj/core.py\`.
+- **Package Configuration**: Explicitly defined packages in \`pyproject.toml\` to prevent discovery errors during editable installation.
+
 ## [6.6.0] - 2024-05-26
 ### Added
 - **Intelligent Phrase Looping**: Automatically identifies and loops rhythmically compatible phrases to extend short track outros/intros.

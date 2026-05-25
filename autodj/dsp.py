@@ -1,5 +1,5 @@
 """
-Digital Signal Processing (DSP) Module | Auto DJ Script (v5.4.1)
+Digital Signal Processing (DSP) Module | Auto DJ Script (v6.6.1)
 ==============================================================
 
 This module provides the core signal processing algorithms for professional-grade
