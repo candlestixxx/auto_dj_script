@@ -16,6 +16,7 @@ from .dsp import ArchetypeRegistry
 from .cluster import cluster
 from .monitoring import monitor
 from .plugins import PluginRegistry
+from .scheduling import get_scheduler
 
 app = FastAPI(title=f"Auto DJ v{__version__} Console")
 templates = Jinja2Templates(directory="templates")
@@ -36,13 +37,18 @@ mixing_status = {
         "disk_write": 0,
         "net_sent": 0,
         "net_recv": 0,
+        "midi_active": False,
+        "midi_device": "None",
         "is_healthy": True,
         "is_throttled": False
     },
     "live_params": {
         "mastering_intensity": 0.5,
         "target_bpm": config.TARGET_BPM,
-        "paused": False
+        "paused": False,
+        "continuous_mode": False,
+        "energy_bias": 0.5,
+        "genre_preference": "Any"
     }
 }
 
@@ -89,6 +95,7 @@ async def index(request: Request):
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(update_telemetry())
+    get_scheduler(mixing_status).start()
 
 async def update_telemetry():
     """Background task to poll system performance metrics."""
@@ -137,7 +144,24 @@ async def get_status():
     if mixing_status["status"] == "Idle":
         import glob
         status_data["available_tracks"] = [os.path.basename(f) for f in glob.glob(os.path.join(config.INPUT_FOLDER, "*")) if any(f.endswith(ext) for ext in config.SUPPORTED_EXTENSIONS)]
+
+    # Update MIDI telemetry if handler exists
+    from .midi import PluginRegistry
+    midi_tool = PluginRegistry.get_tools().get("midi_hardware")
+    if midi_tool and hasattr(midi_tool, 'handler') and midi_tool.handler:
+        status_data["telemetry"]["midi_active"] = midi_tool.handler.running
+        status_data["telemetry"]["midi_device"] = midi_tool.handler.port_name or "Auto-Detect"
+
     return JSONResponse(status_data)
+
+@app.get("/midi/devices")
+async def get_midi_devices():
+    """Returns a list of available MIDI input devices."""
+    import mido
+    try:
+        return {"devices": mido.get_input_names()}
+    except Exception:
+        return {"devices": []}
 
 @app.post("/playlist/add")
 async def playlist_add(filename: str = Form(...)):
@@ -162,7 +186,10 @@ async def cluster_reset(node_id: str = Form(...)):
 async def update_params(
     mastering_intensity: float = Form(None),
     target_bpm: float = Form(None),
-    paused: bool = Form(None)
+    paused: bool = Form(None),
+    continuous_mode: bool = Form(None),
+    energy_bias: float = Form(None),
+    genre_preference: str = Form(None)
 ):
     """Real-time parameter adjustment endpoint."""
     if mastering_intensity is not None:
@@ -171,7 +198,61 @@ async def update_params(
         mixing_status["live_params"]["target_bpm"] = target_bpm
     if paused is not None:
         mixing_status["live_params"]["paused"] = paused
+    if continuous_mode is not None:
+        mixing_status["live_params"]["continuous_mode"] = continuous_mode
+    if energy_bias is not None:
+        mixing_status["live_params"]["energy_bias"] = energy_bias
+    if genre_preference is not None:
+        mixing_status["live_params"]["genre_preference"] = genre_preference
     return {"status": "Updated", "params": mixing_status["live_params"]}
+
+@app.get("/scheduler/events")
+async def scheduler_events():
+    sched = get_scheduler(mixing_status)
+    return {"events": [{"id": i, "time": e["time"].isoformat(), "action": e["action"], "params": e["params"], "status": e["status"]} for i, e in enumerate(sched.events)]}
+
+@app.post("/scheduler/add")
+async def scheduler_add(timestamp: str = Form(...), action: str = Form(...), params: str = Form("{}")):
+    import json
+    from datetime import datetime
+    try:
+        dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+        p = json.loads(params)
+        get_scheduler(mixing_status).add_event(dt, action, p)
+        return {"status": "Added"}
+    except Exception as e:
+        return JSONResponse({"status": "Error", "message": str(e)}, status_code=400)
+
+@app.post("/feedback")
+async def post_feedback(track_index: int = Form(...), rating: int = Form(...)):
+    """Logs user feedback (1 for Up, -1 for Down) for a track."""
+    import json
+    from datetime import datetime
+    feedback_file = "logs/feedback.json"
+    os.makedirs("logs", exist_ok=True)
+
+    entry = {
+        "timestamp": datetime.now().isoformat(),
+        "track_index": track_index,
+        "rating": rating
+    }
+
+    if 0 <= track_index < len(mixing_status["tracklist"]):
+        entry["track"] = mixing_status["tracklist"][track_index]["file"]
+        entry["genre"] = mixing_status["tracklist"][track_index]["genre"]
+        entry["key"] = mixing_status["tracklist"][track_index]["key"]
+
+    try:
+        data = []
+        if os.path.exists(feedback_file):
+            with open(feedback_file, "r") as f:
+                data = json.load(f)
+        data.append(entry)
+        with open(feedback_file, "w") as f:
+            json.dump(data, f, indent=4)
+        return {"status": "Feedback Recorded"}
+    except Exception as e:
+        return JSONResponse({"status": "Error", "message": str(e)}, status_code=500)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

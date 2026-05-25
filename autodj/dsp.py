@@ -39,14 +39,29 @@ def apply_dsp_filter(audio_array, sr, filter_type='highpass', cutoff=150.0):
     return apply_iir_filter(audio_array, b, a)
 
 def trim_silence(segment, silence_threshold=-65.0, chunk_size=10):
+    """
+    Surgical silence removal using optimized NumPy analysis.
+    """
+    # Convert pydub segment to array for fast analysis
     samples = np.array(segment.get_array_of_samples())
     if len(samples) == 0: return segment
+
+    # Simple peak detection for speed
     abs_samples = np.abs(samples)
     threshold = (10**(silence_threshold/20.0)) * (2**15)
+
+    # Find first and last indices above threshold
     active_indices = np.where(abs_samples > threshold)[0]
-    if len(active_indices) == 0: return segment
-    start_ms = int(active_indices[0] * 1000 / segment.frame_rate / segment.channels)
-    end_ms = int(active_indices[-1] * 1000 / segment.frame_rate / segment.channels)
+    if len(active_indices) == 0:
+        return segment
+
+    start_sample = active_indices[0]
+    end_sample = active_indices[-1]
+
+    # Convert samples to ms
+    start_ms = int(start_sample * 1000 / segment.frame_rate / segment.channels)
+    end_ms = int(end_sample * 1000 / segment.frame_rate / segment.channels)
+
     return segment[start_ms:end_ms]
 
 def normalize_lufs(audio_array, sr, target_lufs=-14.0):

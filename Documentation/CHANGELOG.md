@@ -1,5 +1,27 @@
 # Changelog
 
+## [8.11.0] - 2025-01-24
+### Added
+- **Preference-Aware Orchestration**: Enhanced `SmartReplenishTool` with harmonic scoring and user preference integration (Genre/Energy).
+- **Expanded Scheduler API**: Added `set_preference`, `clear_queue`, and `trigger_replenish` actions.
+- **Dynamic Bias Controls**: Real-time sliders for Energy Bias and Genre Preference in the Command Console.
+- **Scheduler History UI**: Persistent reverse-chronological log of executed and pending events.
+- **Heuristic Harmonic Selection**: Automated queue replenishment now prioritizes tracks with matching keys and energy profiles.
+
+## [8.8.0] - 2025-01-24
+### Added
+- **Tactile MIDI Hardware Integration**: Introduced `autodj/midi.py` with threaded `MidiHandler` supporting real-time CC and Note mapping.
+- **Rekordbox Library Ingestion**: Added `RekordboxSourcePlugin` to parse Pioneer `pioneer.xml` files with full URL-encoded path resolution.
+- **Hardware Telemetry Dashboard**: New "HARDWARE & MIDI" panel in the Command Console with device discovery and live activity monitoring.
+- **Hardware-Informed Mastering**: Live parameter overrides for EQ gains and Mastering Intensity via MIDI CC 16-19.
+
+## [8.7.0] - 2025-01-24
+### Added
+- **Quantum Sequence Optimizer**: Upgraded Simulated Annealing to run 4 parallel cooling branches for superior global set-flow optimization.
+- **Visual Sync Waveforms**: Integrated Hot Cue markers and phrase boundaries directly into the WaveSurfer.js waveform display.
+- **3D Beat-Grid Overlay**: Added rhythmic lattice visualization on top of the Spectral Terrain v1.0 engine.
+- **Session Archiving**: Automatic backup of mix metadata, energy profiles, and console logs into versioned `.json` archives.
+
 ## [7.8.0] - 2024-06-01
 ### Added
 - **Advanced Monitoring Dashboard**: Comprehensive system-wide health telemetry and resource charting.
@@ -165,12 +187,12 @@
 
 ## [5.2.0] - 2024-05-20
 ### Added
-- **True-Peak Limiter**: Integrated a soft-knee look-ahead limiter into the mastering chain in \`dsp.py\`.
+- **True-Peak Limiter**: Integrated a soft-knee look-ahead limiter into the mastering chain in `dsp.py`.
 
 ## [5.1.0] - 2024-05-20
 ### Added
-- **Universal Version Synchronization**: Established \`VERSION.md\` as the single source of truth.
-- **Directive Consolidation**: Unified all project instructions into \`GLOBAL_LLM_DIRECTIVE.md\`.
+- **Universal Version Synchronization**: Established `VERSION.md` as the single source of truth.
+- **Directive Consolidation**: Unified all project instructions into `GLOBAL_LLM_DIRECTIVE.md`.
 
 ## [5.0.0] - 2024-05-19
 ### Added

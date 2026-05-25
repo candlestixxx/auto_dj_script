@@ -173,3 +173,45 @@ class LocalFolderSource(SourcePlugin):
             files.extend(glob.glob(os.path.join(folder, f"*{ext.upper()}")))
 
         return list(set(os.path.abspath(f) for f in files))
+
+@PluginRegistry.register_source
+class RekordboxSourcePlugin(SourcePlugin):
+    """
+    Source plugin that reads from a Rekordbox XML export (pioneer.xml).
+    Enables importing analyzed tracks, hot cues, and playlist structures.
+    """
+    name = "rekordbox_xml"
+    display_name = "Rekordbox XML"
+    description = "Imports tracks directly from a Rekordbox pioneer.xml export."
+
+    def get_tracks(self, **kwargs) -> List[str]:
+        xml_path = kwargs.get('xml_path')
+        if not xml_path or not os.path.exists(xml_path):
+            return []
+
+        import xml.etree.ElementTree as ET
+        import urllib.parse
+
+        try:
+            tree = ET.parse(xml_path)
+            root = tree.getroot()
+
+            tracks = []
+            for track in root.findall(".//TRACK"):
+                location = track.get("Location")
+                if location:
+                    # Handle file://localhost/... format
+                    path = location.replace("file://localhost", "")
+                    path = urllib.parse.unquote(path)
+
+                    # On Windows, path might start with /C:/
+                    if os.name == 'nt' and path.startswith("/") and ":" in path:
+                        path = path[1:]
+
+                    if os.path.exists(path):
+                        tracks.append(os.path.abspath(path))
+
+            return tracks
+        except Exception as e:
+            print(f"[!] RekordboxSourcePlugin failed: {e}")
+            return []

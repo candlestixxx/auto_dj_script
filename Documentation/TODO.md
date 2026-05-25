@@ -1,26 +1,20 @@
-# 📝 Immediate Tasks (7.8.0)
+# 📝 Immediate Tasks (8.11.0)
 
 ## 🚀 Features (Immediate Implementation)
-- [x] **Modular Plugin System**: Abstracted Sources, Sinks, and Tools (7.7.0).
-- [ ] **Advanced Monitoring Dashboard**: (7.8.0)
-    - [ ] **Disk I/O & Network Telemetry**: Track throughput using `psutil`.
-    - [ ] **Real-time Resource Charting**: Integrate Chart.js for health visualization.
-    - [ ] **Task Status Tracker**: Granular progress display for background jobs.
-    - [ ] **System Health Guardrail Indicators**: Visual alerts for CPU/RAM throttling.
+- [ ] **AI Genre Evolution**:
+    - [ ] Transition from heuristic to CNN-based style classification in `models.py`.
+    - [ ] Train weights on curated library of 1000+ tracks.
+- [ ] **Mobile Companion App**:
+    - [ ] Flutter-based status dashboard.
+    - [ ] Firebase Cloud Messaging integration for mix completion notifications.
 
 ## 🛠 Improvements & Refactoring
-- [x] **Logarithmic SA Cooling**: Implement a more robust cooling schedule for large sets (>30 tracks).
-- [x] **Mastering True-Peak Limiter**: Upgrade the simple hard limiter to a true-peak look-ahead limiter in `dsp.py`.
+- [ ] **DSP Performance**: Benchmark and optimize 10th-order Butterworth implementation.
+- [ ] **Distributed SA**: Implement multi-node Simulated Annealing (True Quantum).
 
 ## 📚 Documentation
-- [x] **Operational Directive Consolidation**.
-- [x] **Universal Version Sync**.
-- [x] **Code Commentary Audit**: Ensure every function in `dsp.py` and `core.py` has deep "why/how" comments.
+- [ ] Create `Documentation/SCHEDULING_SPEC.md` for advanced event orchestration.
+- [ ] Update `MANUAL.md` with Preference Bias instructions.
 
 ---
 *Keep on goin'! Don't stop the party!*
-
-## 🌠 Future Horizon (v6.x)
-- [ ] **AI Genre Inference**: Implement CNN for automatic transition style detection.
-- [ ] **Live Broadcast Node**: Direct Icecast/RTMP streaming.
-- [x] **Multi-band Compression**: Advanced dynamics processing in the mastering chain.

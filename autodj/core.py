@@ -6,7 +6,7 @@ parallel audio preprocessing, and the final sample-accurate mix reconstruction.
 Version 7.6.0 features: The Visual Era (Spectral Terrain 3D).
 """
 
-import os, glob, re, random, json, subprocess, io
+import os, glob, re, librosa, random, json, subprocess, io
 import soundfile as sf
 import numpy as np
 from pydub import AudioSegment
@@ -30,7 +30,7 @@ from .utils import pydub_to_ndarray, ndarray_to_pydub, export_rekordbox_xml
 from .version import __version__
 from .cluster import cluster
 from .monitoring import monitor
-from .plugins import PluginRegistry
+from .plugins import PluginRegistry, ToolPlugin
 import time
 
 
@@ -90,7 +90,7 @@ def dynamic_warp(y, sr, native_bpm, start_target_bpm, end_target_bpm):
              tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fout:
             sf.write(fin.name, data.T, sr, format='WAV', subtype='PCM_16')
             fin.close(); fout.close()
-            # Correct Ratio: rate is target/native. 
+            # Correct Ratio: rate is target/native.
             # If target > native, rate > 1.0 (speed up).
             # Rubber Band --tempo X: X > 1.0 is faster.
             print(f"    [RB] rate={rate:.4f} in={fin.name}")
@@ -123,10 +123,12 @@ def warp_worker(args):
         # Soundfile returns (samples, channels). We need (channels, samples)
         if y.ndim == 2:
             y = y.T
-        
-        # Ensure sample rate matches (Skip resampling for now to avoid dependency hangs)
-        sr = target_sr
-            
+
+        # Ensure sample rate matches or resample if necessary
+        if sr != target_sr:
+            y = librosa.resample(y, orig_sr=sr, target_sr=target_sr)
+            sr = target_sr
+
         print(f"  [LOAD] {os.path.basename(path)} - Fast-Loaded via SoundFile")
         
         y_w = dynamic_warp(y, sr, native_bpm, s_bpm, e_bpm)
@@ -146,10 +148,11 @@ def analyze_track_worker(f):
         y, sr = sf.read(f, dtype='float32')
         if y.ndim == 2:
             y = y.T
-            
-        # Ensure sr matches
-        sr = target_sr
-            
+
+        if sr != target_sr:
+            y = librosa.resample(y, orig_sr=sr, target_sr=target_sr)
+            sr = target_sr
+
         native_bpm, _, _ = get_native_bpm(y, sr)
         
         # Pure-numpy genre archetype
@@ -160,11 +163,9 @@ def analyze_track_worker(f):
         return {
             'path': f,
             'bpm': native_bpm,
-            'key': get_musical_key(y_mono, sr),
-            'energy': get_energy_profile(y_mono, sr),
-            'genre': genre,
-            'rationale': rationale,
-            'terrain': terrain
+            'key': get_musical_key(y if y.ndim == 1 else librosa.to_mono(y), sr),
+            'energy': get_energy_profile(y if y.ndim == 1 else librosa.to_mono(y), sr),
+            'genre': get_genre_archetype(y if y.ndim == 1 else librosa.to_mono(y), sr)
         }
     except Exception as e:
         print(f"[ERROR] analyze_track_worker failed for {f}: {e}")
@@ -180,15 +181,15 @@ def find_optimal_order(files, status_obj=None):
     for i, f in enumerate(files):
         if status_obj:
             status_obj["active_tasks"][f] = "Analyzing..."
-        
+
         r = analyze_track_worker(f)
         results.append(r)
-        
+
         if status_obj:
             status_obj["active_tasks"].pop(f, None)
             status_obj["status"] = f"Analyzing Library ({i+1}/{total})"
             status_obj["progress"] = int(((i + 1) / total) * 50)
-            
+
         if 'error' not in r:
             print(f"  [{i+1}/{total}] {os.path.basename(f)}: BPM={r['bpm']:.1f}, Key={r['key']}, Genre={r['genre']}")
         else:
@@ -279,7 +280,7 @@ def compile_master_set(args, status_obj=None):
 
     # Phase 2: Cluster-Accelerated Warping (50-75%)
     if status_obj:
-        status_obj["status"] = f"Warping {num_tracks} tracks (Cluster: {cluster.nodes[0].id})"
+        status_obj["status"] = f"Warping {num_tracks} tracks"
 
     wait_for_health(status_obj)
 
@@ -296,7 +297,7 @@ def compile_master_set(args, status_obj=None):
 
     warped_results = [None] * num_tracks
     executor = cluster.get_executor()
-    futures = {executor.submit(warp_worker, task): i for i, task in enumerate(warp_tasks)}
+    futures = {executor.submit(warp_worker, task): idx for idx, task in enumerate(warp_tasks)}
     for future in as_completed(futures):
         idx = futures[future]
         if status_obj:
@@ -332,7 +333,41 @@ def compile_master_set(args, status_obj=None):
     master_grid_offset = 0
     mix_executor = cluster.get_executor()
 
-    for i in range(num_tracks):
+
+    i = 0
+    while i < len(all_files):
+        # 1. Dynamic Queue Replenishment (Continuous Mode)
+        if status_obj and status_obj.get('playlist'):
+             current_playlist_paths = []
+             for item in status_obj['playlist']:
+                 p = item if os.path.isabs(item) else os.path.join(config.INPUT_FOLDER, item)
+                 current_playlist_paths.append(p)
+
+             for pf in current_playlist_paths:
+                 if pf not in all_files:
+                     all_files.append(pf)
+
+        # 2. Dynamic Warp for newly injected tracks
+        if i >= len(warped_results):
+            try:
+                target_bpm = status_obj.get('live_params', {}).get('target_bpm', start_bpm) if status_obj else start_bpm
+                y_raw, sr_orig = sf.read(all_files[i], dtype='float32')
+                if y_raw.ndim == 2: y_raw = y_raw.T
+
+                # Metadata Analysis
+                nbpm, _, _ = get_native_bpm(y_raw, sr_orig)
+                mkey = get_musical_key(y_raw if y_raw.ndim==1 else librosa.to_mono(y_raw), sr_orig)
+                gnr, _ = get_genre_archetype(y_raw if y_raw.ndim==1 else librosa.to_mono(y_raw), sr_orig, bpm=nbpm)
+                meta_list.append({'bpm': nbpm, 'key': mkey, 'genre': gnr})
+
+                # Warping
+                tar_key = meta_list[i-1]['key'] if i > 0 else None
+                y_w, sr = warp_worker((all_files[i], nbpm, target_bpm, target_bpm, mkey, tar_key, True))
+                warped_results.append((y_w, sr))
+            except Exception as e:
+                print(f"[ERROR] Dynamic warp failed for {all_files[i]}: {e}")
+                warped_results.append((None, None))
+
         y_w, sr = warped_results[i]
         if y_w is None:
             print(f"[WARN] Skipping track {i}: warp failed")
@@ -369,11 +404,8 @@ def compile_master_set(args, status_obj=None):
         # 1. Theoretical Transition Prep (v7.2.0)
         ms_per_beat = 60000.0 / t_s_bpm
         ms_per_bar = ms_per_beat * args.beats_per_bar
-        grid_size = ms_per_bar * 8 
-        
-        # Energy-Aware Slicing: Find the last kick of the current master
-        _, _, _, master_last_kick = analyze_geometry(master, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
-        
+        grid_size = ms_per_bar * 8 # Switch to 8-bar phrasing (Standard Psy)
+
         fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)] if len(beats) > 0 else theoretical_ms_trans
         ideal_p = fixed_p
         if ph.any():
@@ -398,6 +430,7 @@ def compile_master_set(args, status_obj=None):
         current_kick_pos = (current_time_ms - ms_trans + first_beat_ms)
         relative_pos = current_kick_pos - master_grid_offset
         phase_error = relative_pos % grid_size
+
         if phase_error != 0:
              ms_trans += int(phase_error)
 
@@ -405,9 +438,13 @@ def compile_master_set(args, status_obj=None):
         m_slice = pydub_to_ndarray(master[-ms_trans:])
         n_slice = pydub_to_ndarray(nxt[:ms_trans])
         sync_nudge = find_sync_offset(m_slice, n_slice, sr, t_s_bpm)
-        
+
+        # Increase nudge limit to +/- 2 beats (approx 826ms @ 145BPM)
+        # This allows the engine to jump over a kick if the initial phrasing was off.
         max_nudge = int(ms_per_beat * 2.0)
         sync_nudge = max(-max_nudge, min(max_nudge, sync_nudge))
+
+        # CORRECT DIRECTION: Subtract nudge to align transients
         ms_trans -= sync_nudge
 
         print(f"  [SYNC] Energy-Anchor Lock. Tail: {len(master)-master_last_kick}ms. Nudge: {sync_nudge}ms.")
@@ -470,6 +507,12 @@ def compile_master_set(args, status_obj=None):
 
         master = m_body + mix_bus + n_body
         current_time_ms = len(master)
+        if status_obj and status_obj.get('live_params', {}).get('continuous_mode'):
+            if i > 3:
+                if i-3 < len(warped_results): warped_results[i-3] = None
+                if i-3 < len(processed_tracks): processed_tracks[i-3] = None
+
+        i += 1
 
     if master:
         # Modular Output Export (v7.7.0)
@@ -550,3 +593,76 @@ def ms_to_timestamp(ms):
     m = int((ms / (1000 * 60)) % 60)
     h = int((ms / (1000 * 60 * 60)) % 24)
     return f"{h:02d}:{m:02d}:{s:02d}"
+
+
+@PluginRegistry.register_tool
+class SmartReplenishTool(ToolPlugin):
+    """
+    Autonomous tool that monitors the live queue and automatically replenishes it
+    from the selected source plugin when the track count drops below a threshold.
+    Enhanced in v8.11.0 with scoring heuristic and preference bias.
+    """
+    name = "smart_replenish"
+    display_name = "Smart Replenish"
+    description = "Automatically adds new tracks to the queue based on harmonic compatibility and preferences."
+
+    def on_track_start(self, track_meta, status_obj=None, **kwargs):
+        if not status_obj or not status_obj.get('live_params', {}).get('continuous_mode'):
+            return
+
+        playlist = status_obj.get('playlist', [])
+        tracklist = status_obj.get('tracklist', [])
+
+        if len(playlist) < 3:
+            source_name = status_obj.get('active_source', 'local_folder')
+            source_cls = PluginRegistry.get_sources().get(source_name)
+            if not source_cls: return
+
+            source = source_cls()
+            all_tracks = source.get_tracks(folder=status_obj.get('input_folder'))
+
+            already_seen = set(t['file'] for t in tracklist) | set(playlist)
+            candidates = [t for t in all_tracks if os.path.basename(t) not in already_seen and t not in already_seen]
+
+            if not candidates: return
+
+            # Scoring Heuristic (v8.11.0)
+            from .analysis import get_native_bpm, get_musical_key, get_genre_archetype, get_energy_profile, is_harmonically_compatible
+
+            last_track = tracklist[-1] if tracklist else None
+            pref_genre = status_obj['live_params'].get('genre_preference', 'Any')
+            pref_energy = status_obj['live_params'].get('energy_bias', 0.5)
+
+            best_candidate = None
+            best_score = -1000
+
+            # Only sample a subset for speed if library is huge
+            import random
+            sample = random.sample(candidates, min(10, len(candidates)))
+
+            for c_path in sample:
+                try:
+                    # Quick partial analysis
+                    y, sr = sf.read(c_path, stop=sr*30 if 'sr' in locals() else 44100*30)
+                    if y.ndim == 2: y = y.T
+                    mono = y if y.ndim==1 else librosa.to_mono(y)
+                    c_key = get_musical_key(mono, sr)
+                    c_genre, _ = get_genre_archetype(mono, sr)
+                    c_energy = get_energy_profile(mono, sr)
+
+                    score = 0
+                    if last_track:
+                         l_key = last_track['key'].split(' (')[0]
+                         if is_harmonically_compatible(l_key, c_key): score += 50
+
+                    if pref_genre != 'Any' and c_genre == pref_genre: score += 30
+                    score -= abs(c_energy - pref_energy) * 40
+
+                    if score > best_score:
+                        best_score = score
+                        best_candidate = c_path
+                except: continue
+
+            target = best_candidate if best_candidate else random.choice(candidates)
+            status_obj['playlist'].append(os.path.basename(target))
+            print(f"[*] Smart Replenish: Added {os.path.basename(target)} to queue (Score: {best_score}).")

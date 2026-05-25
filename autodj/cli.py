@@ -14,6 +14,9 @@ def main():
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     PluginRegistry.load_plugins(os.path.join(root_dir, "plugins"))
 
+    # Import internal plugins (v8.8.0)
+    from . import midi
+
     """
     Parses command line arguments and initiates the compilation process.
     Supports overrides for all major processing parameters.
