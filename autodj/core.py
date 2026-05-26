@@ -480,87 +480,151 @@ def compile_master_set(args, status_obj=None):
             status_obj["tracklist"] = tracklist
             status_obj["progress"] = 75 + int((i / max(num_tracks-1, 1)) * 25)
 
-        # Two-Phase Overlap: Pre-fade + Crossfade
+        # Two-Phase Overlap with Continuous Volume Curves
         pre_fade_ms = max(0, ms_trans - crossfade_ms)
         if pre_fade_ms > 0:
             print(f" [PREFADE] {pre_fade_ms}ms ambient intro under outgoing track")
-        # Pre-fade: incoming track's ambient intro plays quietly under outgoing
-        # Crossfade: actual DJ transition (EQ swap + volume crossfade)
+
         m_body = master[:-ms_trans]
-        m_overlap = master[-ms_trans:]
-        n_intro_full = nxt[:ms_trans]
+        m_overlap = pydub_to_ndarray(master[-ms_trans:])
+        n_intro_full = pydub_to_ndarray(nxt[:ms_trans])
         n_body = nxt[ms_trans:]
 
-        if pre_fade_ms > 0 and ms_trans > crossfade_ms:
-            # Phase 1: Pre-fade (incoming at low volume under outgoing at full volume)
-            pf_samples = int(pre_fade_ms * sr / 1000)
-            m_pre = pydub_to_ndarray(m_overlap[:pf_samples] if pf_samples < len(m_overlap) else m_overlap)
-            n_pre = pydub_to_ndarray(n_intro_full[:pf_samples] if pf_samples < len(n_intro_full) else n_intro_full)
-            # Incoming at 25% volume for ambient intro, outgoing at 100%
-            pre_fade_mix = m_pre + n_pre * 0.25
-            pre_fade_mix = apply_limiter(pre_fade_mix)
-            pre_bus = ndarray_to_pydub(pre_fade_mix, sr)
-
-            # Phase 2: Crossfade (normal DJ transition on the remainder)
-            m_cf = m_overlap[pf_samples:]
-            n_cf = n_intro_full[pf_samples:]
+        # Ensure both overlap arrays have exactly the same sample count
+        # (pydub slicing from different segments can differ by +/-1 sample)
+        m_len = m_overlap.shape[1] if m_overlap.ndim == 2 else len(m_overlap)
+        n_len = n_intro_full.shape[1] if n_intro_full.ndim == 2 else len(n_intro_full)
+        min_len = min(m_len, n_len)
+        if m_overlap.ndim == 2:
+            m_overlap = m_overlap[:, :min_len]
+            n_intro_full = n_intro_full[:, :min_len]
         else:
-            # No pre-fade needed: entire overlap is crossfade
-            pre_bus = None
-            m_cf = m_overlap
-            n_cf = n_intro_full
+            m_overlap = m_overlap[:min_len]
+            n_intro_full = n_intro_full[:min_len]
 
-        # Archetype Selection -- 'auto' always uses bass-swap transition
+        # Build continuous volume curves for the entire overlap
+        total_samples = min_len
+        if pre_fade_ms > 0 and total_samples > int(crossfade_ms * sr / 1000):
+            pf_samples = min(int(pre_fade_ms * sr / 1000), total_samples)
+            cf_len = total_samples - pf_samples
+            cf_x = np.linspace(0, 1, max(cf_len, 1))
+            pf_x = np.linspace(0, 1, max(pf_samples, 1))
+
+            # Outgoing: full volume during pre-fade, then crossfade out
+            out_curve = np.ones(total_samples)
+            out_curve[pf_samples:] = np.cos(np.pi * cf_x ** 0.8 / 2)
+
+            # Incoming: gentle ramp during pre-fade (0 -> 25%), then crossfade in (25% -> 100%)
+            in_curve = np.zeros(total_samples)
+            prefade_vol = 0.25
+            in_curve[:pf_samples] = prefade_vol * (pf_x ** 0.7)  # gentle power ramp
+            # Crossfade portion: scale sin curve to go from prefade_vol to 1.0
+            cf_in_raw = np.sin(np.pi * cf_x ** 1.2 / 2)
+            in_curve[pf_samples:] = prefade_vol + (1.0 - prefade_vol) * cf_in_raw
+        else:
+            # No pre-fade: standard crossfade curves over entire overlap
+            x = np.linspace(0, 1, total_samples)
+            out_curve = np.cos(np.pi * x ** 0.8 / 2)
+            in_curve = np.sin(np.pi * x ** 1.2 / 2)
+
+        # Apply archetype (bass swap / EQ) to the crossfade portion only
         mode = getattr(args, 'archetype', 'auto')
         if mode == 'auto':
             mode = 'progressive'
         dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass, 'ideal_p': ideal_p}
-        render_args = (pydub_to_ndarray(m_cf), pydub_to_ndarray(n_cf), sr, mode, crossfade_ms, ideal_p, dsp_kwargs)
 
-        # Parallel Transition Rendering
-        if status_obj:
-            status_obj.setdefault("active_tasks", {})[f"Transition {i-1}->{i}"] = "Mixing..."
-        future = mix_executor.submit(transition_render_worker, render_args)
-        mix_bus_raw, _ = future.result()
-        if status_obj:
-            status_obj.get("active_tasks", {}).pop(f"Transition {i-1}->{i}", None)
-
-        # Fault Tolerance: Fallback
-        if mix_bus_raw is None:
-            monitor.log_incident("WARN", "CoreEngine", f"Transition render {i} failed. Falling back...")
-            mix_bus_raw, _ = transition_render_worker(render_args)
-
-        if mix_bus_raw is not None:
-            # Ensure mix_bus has exactly ms_trans duration (pad/trim)
-            expected_samples = int(crossfade_ms * sr / 1000)
-            if mix_bus_raw.ndim == 2:
-                actual_samples = mix_bus_raw.shape[1]
+        if pre_fade_ms > 0 and total_samples > int(crossfade_ms * sr / 1000):
+            pf_s = min(int(pre_fade_ms * sr / 1000), total_samples)
+            # Process only the crossfade portion through the archetype
+            m_cf_raw = m_overlap[:, pf_s:] if m_overlap.ndim == 2 else m_overlap[pf_s:]
+            n_cf_raw = n_intro_full[:, pf_s:] if n_intro_full.ndim == 2 else n_intro_full[pf_s:]
+            arch_plugin = ArchetypeRegistry.get(mode)
+            if arch_plugin:
+                m_cf_proc, n_cf_proc = arch_plugin.apply(m_cf_raw, n_cf_raw, sr, **dsp_kwargs)
             else:
-                actual_samples = len(mix_bus_raw)
-            if actual_samples < expected_samples:
-                pad_len = expected_samples - actual_samples
-                if mix_bus_raw.ndim == 2:
-                    mix_bus_raw = np.pad(mix_bus_raw, ((0,0),(0,pad_len)), mode="constant")
+                from .dsp import _apply_bass_swap_transition
+                m_cf_proc, n_cf_proc = _apply_bass_swap_transition(m_cf_raw, n_cf_raw, sr)
+            # Reassemble full arrays: pre-fade raw + crossfade processed
+            if m_overlap.ndim == 2:
+                m_proc = np.concatenate([m_overlap[:, :pf_s], m_cf_proc], axis=1)
+                n_proc = np.concatenate([n_intro_full[:, :pf_s], n_cf_proc], axis=1)
+            else:
+                m_proc = np.concatenate([m_overlap[:pf_s], m_cf_proc])
+                n_proc = np.concatenate([n_intro_full[:pf_s], n_cf_proc])
+            # Safeguard: ensure processed arrays match total_samples
+            proc_len = m_proc.shape[1] if m_proc.ndim == 2 else len(m_proc)
+            if proc_len != total_samples:
+                if proc_len < total_samples:
+                    pad = total_samples - proc_len
+                    if m_proc.ndim == 2:
+                        m_proc = np.pad(m_proc, ((0,0),(0,pad)))
+                        n_proc = np.pad(n_proc, ((0,0),(0,pad)))
+                    else:
+                        m_proc = np.pad(m_proc, (0,pad))
+                        n_proc = np.pad(n_proc, (0,pad))
                 else:
-                    mix_bus_raw = np.pad(mix_bus_raw, (0,pad_len), mode="constant")
-            elif actual_samples > expected_samples:
-                if mix_bus_raw.ndim == 2:
-                    mix_bus_raw = mix_bus_raw[:, :expected_samples]
-                else:
-                    mix_bus_raw = mix_bus_raw[:expected_samples]
-            mix_bus = ndarray_to_pydub(mix_bus_raw, sr)
-            monitor.record_success()
+                    if m_proc.ndim == 2:
+                        m_proc = m_proc[:, :total_samples]
+                        n_proc = n_proc[:, :total_samples]
+                    else:
+                        m_proc = m_proc[:total_samples]
+                        n_proc = n_proc[:total_samples]
         else:
-            monitor.record_failure()
-            # Classic Fallback
-            f_m = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(m_cf), sr, "lowpass", args.lowpass), sr)
-            f_n = ndarray_to_pydub(apply_dsp_filter(pydub_to_ndarray(n_cf), sr, "highpass", args.highpass), sr)
-            mix_bus = f_m.fade_out(crossfade_ms).overlay(f_n.fade_in(crossfade_ms))
+            # No pre-fade: process entire overlap
+            arch_plugin = ArchetypeRegistry.get(mode)
+            if arch_plugin:
+                m_proc, n_proc = arch_plugin.apply(m_overlap, n_intro_full, sr, **dsp_kwargs)
+            else:
+                from .dsp import _apply_bass_swap_transition
+                m_proc, n_proc = _apply_bass_swap_transition(m_overlap, n_intro_full, sr)
+            # Safeguard: ensure processed arrays match total_samples
+            proc_len = m_proc.shape[1] if m_proc.ndim == 2 else len(m_proc)
+            if proc_len != total_samples:
+                if proc_len < total_samples:
+                    pad = total_samples - proc_len
+                    if m_proc.ndim == 2:
+                        m_proc = np.pad(m_proc, ((0,0),(0,pad)))
+                        n_proc = np.pad(n_proc, ((0,0),(0,pad)))
+                    else:
+                        m_proc = np.pad(m_proc, (0,pad))
+                        n_proc = np.pad(n_proc, (0,pad))
+                else:
+                    if m_proc.ndim == 2:
+                        m_proc = m_proc[:, :total_samples]
+                        n_proc = n_proc[:, :total_samples]
+                    else:
+                        m_proc = m_proc[:total_samples]
+                        n_proc = n_proc[:total_samples]
 
-        master = m_body
-        if pre_bus is not None:
-            master = master + pre_bus
-        master = master + mix_bus + n_body
+        # Apply volume curves and sum into single continuous mix
+        if m_proc.ndim == 2:
+            mix_bus_raw = m_proc * out_curve[np.newaxis, :] + n_proc * in_curve[np.newaxis, :]
+        else:
+            mix_bus_raw = m_proc * out_curve + n_proc * in_curve
+        mix_bus_raw = apply_limiter(mix_bus_raw)
+
+        # Ensure mix_bus has exactly ms_trans duration
+        expected_samples = int(ms_trans * sr / 1000)
+        if mix_bus_raw.ndim == 2:
+            actual_samples = mix_bus_raw.shape[1]
+        else:
+            actual_samples = len(mix_bus_raw)
+        if actual_samples < expected_samples:
+            pad_len = expected_samples - actual_samples
+            if mix_bus_raw.ndim == 2:
+                mix_bus_raw = np.pad(mix_bus_raw, ((0,0),(0,pad_len)), mode="constant")
+            else:
+                mix_bus_raw = np.pad(mix_bus_raw, (0,pad_len), mode="constant")
+        elif actual_samples > expected_samples:
+            if mix_bus_raw.ndim == 2:
+                mix_bus_raw = mix_bus_raw[:, :expected_samples]
+            else:
+                mix_bus_raw = mix_bus_raw[:expected_samples]
+
+        mix_bus = ndarray_to_pydub(mix_bus_raw, sr)
+
+        # Assemble: m_body + mix_bus + n_body (single continuous segment)
+        master = m_body + mix_bus + n_body
         current_time_ms = len(master)
 
         # Memory management for continuous mode
