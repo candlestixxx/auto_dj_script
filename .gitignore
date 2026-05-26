@@ -1,10 +1,25 @@
 __pycache__/
 *.wav
 *.flac
+*.mp3
+*.aiff
+*.m4a
 psyset_source/
 # AI tool artifacts
 .borg_startup_marker
 .pi/
 .jules/
+.hypercode/
+.hypercode-session.json
+.hypercode_startup_marker
 metamcp.db
+metamcp.db-journal
 *.db
+data/
+
+# Logs and Outputs
+*.log
+final_dj_master*
+*.xml
+*.txt
+autodj.egg-info/

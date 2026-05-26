@@ -167,7 +167,7 @@ def find_optimal_order(files, status_obj=None):
 
     # Run analysis in parallel to leverage multi-core CPUs
     results = []
-    with ProcessPoolExecutor() as executor:
+    with ThreadPoolExecutor() as executor:
         futures = {executor.submit(analyze_track_worker, f): f for f in files}
         for i, future in enumerate(as_completed(futures)):
             r = future.result()
@@ -355,13 +355,19 @@ def compile_master_set(args, status_obj=None):
 
         if master is None:
             master = nxt
-            tracklist.append({'timestamp': "00:00:00", 'file': os.path.basename(all_files[i]),
-                               'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
-                               'genre': meta_list[i]['genre'],
-                               'rationale': meta_list[i].get('rationale', ''),
-                               'terrain': meta_list[i].get('terrain', []),
-                               'start_ms': 0})
+            tracklist.append({
+                'timestamp': "00:00:00", 
+                'file': os.path.basename(all_files[i]),
+                'path': all_files[i],
+                'bpm': meta_list[i]['bpm'],
+                'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
+                'genre': meta_list[i]['genre'],
+                'rationale': meta_list[i].get('rationale', ''),
+                'terrain': meta_list[i].get('terrain', []),
+                'start_ms': 0
+            })
             current_time_ms = len(master)
+            i += 1
             continue
 
         prev_nxt, prev_y_w, _ = processed_tracks[i-1]
@@ -408,7 +414,9 @@ def compile_master_set(args, status_obj=None):
         ms_trans += sync_nudge
 
         # Intelligent Tail Extension
+        print(f"  [DEBUG] Tail extension check... ms_trans={ms_trans}")
         if ms_trans > (len(master) - tracklist[-1]['start_ms']):
+            print("  [DEBUG] Extending tail...")
             loop_bar = identify_loopable_phrase(prev_y_w, sr, t_s_bpm, args.beats_per_bar)
             needed_ms = ms_trans - (len(master) - tracklist[-1]['start_ms'])
             num_loops = int(np.ceil(needed_ms / (len(loop_bar) / sr * 1000))) + 1
@@ -419,34 +427,44 @@ def compile_master_set(args, status_obj=None):
 
         ms_trans = min(ms_trans, len(master))
         track_start_ms = len(master) - ms_trans
+        print(f"  [DEBUG] Appending track {i} to tracklist...")
 
-        tracklist.append({'timestamp': ms_to_timestamp(track_start_ms), 'file': os.path.basename(all_files[i]),
-                           'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
-                           'genre': meta_list[i]['genre'],
-                           'rationale': meta_list[i].get('rationale', ''),
-                           'terrain': meta_list[i].get('terrain', []),
-                           'start_ms': track_start_ms})
+        tracklist.append({
+            'timestamp': ms_to_timestamp(track_start_ms), 
+            'file': os.path.basename(all_files[i]),
+            'path': all_files[i],
+            'bpm': meta_list[i]['bpm'],
+            'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
+            'genre': meta_list[i]['genre'],
+            'rationale': meta_list[i].get('rationale', ''),
+            'terrain': meta_list[i].get('terrain', []),
+            'start_ms': track_start_ms
+        })
 
         if status_obj:
             status_obj["tracklist"] = tracklist
             status_obj["progress"] = 75 + int((i / (num_tracks-1)) * 25)
 
         # Gapless Slicing: Both tracks must be sliced using the EXACT same ms_trans
+        print(f"  [DEBUG] Slicing... ms_trans={ms_trans}")
         m_body, m_outro = master[:-ms_trans], master[-ms_trans:]
         n_intro, n_body = nxt[:ms_trans], nxt[ms_trans:]
 
         # Archetype Selection Logic
+        print(f"  [DEBUG] Archetype selection...")
         mode = getattr(args, 'archetype', 'auto')
         if mode == 'auto' and meta_list[i]['genre'] == 'High-Energy':
             mode = 'progressive' # Professional default for Psytrance
 
         # Parallel Transition Rendering (7.0.0)
+        print(f"  [DEBUG] Submitting render task...")
         dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass}
         render_args = (pydub_to_ndarray(m_outro), pydub_to_ndarray(n_intro), sr, mode, ms_trans, ideal_p, dsp_kwargs)
 
         # Using the cluster executor
         future = mix_executor.submit(transition_render_worker, render_args)
         mix_bus_raw, _ = future.result()
+        print(f"  [DEBUG] Render task complete.")
 
         # Fault Tolerance: Fallback to Sequential Render (v7.4.0)
         if mix_bus_raw is None:
@@ -495,16 +513,11 @@ def compile_master_set(args, status_obj=None):
         # Integration Bridge: Rekordbox XML Export (v7.3.0)
         xml_path = os.path.splitext(args.output)[0] + "_rekordbox.xml"
         try:
-            # Enriched tracklist for XML
-            enriched_tl = []
+            # Enriched tracklist for XML (duration_ms is the only missing field)
             for i, item in enumerate(tracklist):
-                entry = dict(item)
-                entry['path'] = all_files[i]
-                entry['bpm'] = str(meta_list[i]['bpm'])
-                entry['duration_ms'] = len(processed_tracks[i][0]) if i < len(processed_tracks) else 0
-                enriched_tl.append(entry)
+                item['duration_ms'] = len(processed_tracks[i][0]) if i < len(processed_tracks) else 0
 
-            export_rekordbox_xml(enriched_tl, xml_path)
+            export_rekordbox_xml(tracklist, xml_path)
             print(f"[*] Integration: Rekordbox XML exported to {xml_path}")
         except Exception as e:
             print(f"[WARN] Rekordbox export failed: {e}")

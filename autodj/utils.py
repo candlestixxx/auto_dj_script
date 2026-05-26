@@ -72,14 +72,14 @@ def export_rekordbox_xml(tracklist, output_xml_path):
             Size="0",
             TotalTime=str(int(item.get('duration_ms', 0) / 1000)),
             Location=f"file://localhost{item['path']}" if 'path' in item else "",
-            AverageBpm=item.get('bpm', "0"),
+            AverageBpm=str(round(float(item.get('bpm', 0)), 2)),
             Tonality=item['key']
         )
         # Add Cue point for the transition start
         ET.SubElement(track, "POSITION_MARK",
             Name="Transition Start",
             Type="0",
-            Start=str(item['start_ms'] / 1000),
+            Start=f"{item['start_ms'] / 1000:.3f}",
             Num="0"
         )
 

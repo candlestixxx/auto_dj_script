@@ -7,7 +7,7 @@ packages = ["autodj"]
 
 [project]
 name = "autodj"
-version = "6.6.1"
+version = "7.6.1"
 description = "Automated seamless DJ transitions with frequency splitting and harmonic mixing."
 readme = "README.md"
 requires-python = ">=3.8"
