@@ -1,6 +1,12 @@
-""" Digital Signal Processing (DSP) Module | Auto DJ Script (v9.2.0 - DJ Transitions).
+""" Digital Signal Processing (DSP) Module | Auto DJ Script (v9.3.0 - Clean Transitions).
 ==============================================================
-Professional DJ-style transitions with proper EQ swap logic.
+Professional DJ-style transitions that sound like a real DJ mixer.
+
+Design philosophy:
+- Volume crossfade does 90% of the mixing work
+- Bass swap handles the kick drum transition
+- No aggressive filter sweeps — those are an effect, not a transition
+- A real DJ mixer has 3-band EQ (HI/MID/LO) and volume faders, nothing more
 """
 
 import numpy as np
@@ -87,24 +93,6 @@ def apply_limiter(audio_array, threshold=0.99):
     return audio_array
 
 
-def apply_log_fade(audio_array, fade_type='in', dip_db=-2.5):
-    """Apply logarithmic fade curve.
-    
-    The dip_db parameter controls a subtle mid-boost that compensates
-    for the perceived volume dip during crossfades. -2.5dB is gentle.
-    """
-    num_samples = audio_array.shape[1] if audio_array.ndim == 2 else len(audio_array)
-    x = np.linspace(0, 1, num_samples)
-
-    # Equal-power crossfade: sqrt curves ensure constant total power
-    curve = np.sqrt(x) if fade_type == 'in' else np.sqrt(1.0 - x)
-
-    # Subtle dip compensation (prevents "hole" at crossover point)
-    dip_factor = 1.0 - (1.0 - 10 ** (dip_db / 20.0)) * np.sin(np.pi * x)
-
-    return audio_array * curve * dip_factor
-
-
 def apply_multiband_compression(audio_array, sr, intensity=0.5, genre_profile=None):
     return audio_array
 
@@ -113,93 +101,75 @@ def calculate_spectral_clash(outro_array, intro_array, sr):
     return {'low': 1.0, 'mid': 1.0, 'high': 1.0}
 
 
-@ArchetypeRegistry.register
-class DualFilterSweep(TransitionArchetype):
-    name = "progressive"
-    display_name = "Dual-Sweep (Professional)"
+def _apply_bass_swap_transition(outro_array, intro_array, sr, **kwargs):
+    """The core DJ transition: bass swap + volume crossfade.
 
-    @staticmethod
-    def apply(outro_array, intro_array, sr, **kwargs):
-        """Professional DJ-style EQ swap transition.
+    This is how a real DJ mixes on a standard 2-channel mixer:
+    1. Intro starts playing with its LOW EQ cut (bass at -inf)
+    2. As the mix progresses, the intro's bass is brought in
+    3. Simultaneously the outro's bass is cut
+    4. The volume fader crossfades the mid/high smoothly
+    5. The "bass swap" moment is where the kick drum changes over
 
-        The key principle: in a real DJ mix, you don't kill the outgoing
-        track's entire spectrum. You SWAP the bass and gently fade the rest.
+    NO filter sweeps. NO resonant sweeps. Just EQ and faders.
+    """
+    out_len = outro_array.shape[1] if outro_array.ndim == 2 else len(outro_array)
+    in_len = intro_array.shape[1] if intro_array.ndim == 2 else len(intro_array)
+    if out_len == 0 or in_len == 0:
+        return np.copy(outro_array), np.copy(intro_array)
 
-        Phase 1 (0-40%):  Intro enters with bass cut (HPF 200Hz->80Hz).
-                           Outro at full bandwidth. This lets the intro's
-                           mid/high frequencies blend over the outro.
-        Phase 2 (40-60%): Bass swap zone. Both tracks have bass briefly.
-                           This is the "mixing point" where the kick drum
-                           transitions from outgoing to incoming.
-        Phase 3 (60-100%): Outro LPF closes 10kHz->2kHz (gentle, not harsh).
-                            Intro fully open. Outro naturally recedes.
+    # --- SPECTRAL: bass management only (single filter call, no per-block) ---
 
-        IMPORTANT: This function ONLY does spectral separation (EQ curves).
-        The volume crossfade is applied separately by transition_render_worker
-        using apply_log_fade(). The combination creates a smooth transition
-        where neither track "abruptly" disappears.
-        """
-        total_samples = outro_array.shape[1] if outro_array.ndim == 2 else len(outro_array)
-        if total_samples == 0:
-            return outro_array, intro_array
+    # Build separate gain curves for outro and intro (they may differ in length)
+    x_out = np.linspace(0, 1, out_len)
+    outro_bass_curve = np.ones(out_len)
+    mask = x_out > 0.4
+    outro_bass_curve[mask] = 0.5 * (1 + np.cos(np.pi * (x_out[mask] - 0.4) / 0.4))
+    outro_bass_curve[x_out > 0.8] = 0.02
 
-        block_size = int(sr * 0.05)  # 50ms blocks for smooth sweeps
-        f_m = np.copy(outro_array)
-        f_n = np.copy(intro_array)
+    x_in = np.linspace(0, 1, in_len)
+    intro_bass_curve = np.zeros(in_len)
+    mask = x_in > 0.3
+    intro_bass_curve[mask] = 0.5 * (1 - np.cos(np.pi * (x_in[mask] - 0.3) / 0.4))
+    intro_bass_curve[x_in > 0.7] = 1.0
 
-        try:
-            from scipy.signal import lfilter
-            use_scipy = True
-        except ImportError:
-            use_scipy = False
+    # Apply bass management using crossover filters
+    try:
+        from scipy.signal import lfilter, butter
 
-        for start in range(0, total_samples, block_size):
-            end = min(total_samples, start + block_size)
-            progress = start / total_samples
+        # Design crossover filters (2nd-order for gentle slopes)
+        b_lo, a_lo = butter(2, 150.0 / (0.5 * sr), btype='low')
+        b_hi, a_hi = butter(2, 150.0 / (0.5 * sr), btype='high')
 
-            # OUTRO: full bandwidth for first 60%, then gentle LPF closing
-            if progress < 0.6:
-                lp_f = 20000.0  # Full bandwidth - outro dominates
-            else:
-                # Gentle close: 10kHz -> 2kHz over last 40%
-                t = (progress - 0.6) / 0.4  # 0..1
-                lp_f = 10000 * (2000 / 10000) ** t
+        # Split and recombine each track
+        f_m = np.zeros_like(outro_array)
+        f_n = np.zeros_like(intro_array)
 
-            # INTRO: bass-cut opening up, mid/high always present
-            if progress < 0.4:
-                # HPF sweeps 200Hz -> 80Hz (bass gradually entering)
-                t = progress / 0.4  # 0..1
-                hp_f = 200 * (80 / 200) ** t
-            elif progress < 0.6:
-                # Bass swap zone: brief overlap where both have bass
-                hp_f = 80.0
-            else:
-                # Intro fully open - it's now the main track
-                hp_f = 20.0
+        if outro_array.ndim == 2:
+            for ch in range(outro_array.shape[0]):
+                bass = lfilter(b_lo, a_lo, outro_array[ch])[:out_len]
+                rest = lfilter(b_hi, a_hi, outro_array[ch])[:out_len]
+                f_m[ch] = rest + bass * outro_bass_curve
+        else:
+            bass = lfilter(b_lo, a_lo, outro_array)[:out_len]
+            rest = lfilter(b_hi, a_hi, outro_array)[:out_len]
+            f_m = rest + bass * outro_bass_curve
 
-            b_m, a_m = get_butter_coeffs(lp_f, sr, btype='lowpass')
-            b_n, a_n = get_butter_coeffs(hp_f, sr, btype='highpass')
-
-            chunk_m = f_m[:, start:end] if f_m.ndim == 2 else f_m[start:end]
-            chunk_n = f_n[:, start:end] if f_n.ndim == 2 else f_n[start:end]
-
-            if chunk_m.shape[-1] > 0:
-                if use_scipy:
-                    if chunk_m.ndim == 2:
-                        for ch in range(chunk_m.shape[0]):
-                            f_m[ch, start:end] = lfilter(b_m, a_m, chunk_m[ch])
-                    else:
-                        f_m[start:end] = lfilter(b_m, a_m, chunk_m)
-
-            if chunk_n.shape[-1] > 0:
-                if use_scipy:
-                    if chunk_n.ndim == 2:
-                        for ch in range(chunk_n.shape[0]):
-                            f_n[ch, start:end] = lfilter(b_n, a_n, chunk_n[ch])
-                    else:
-                        f_n[start:end] = lfilter(b_n, a_n, chunk_n)
+        if intro_array.ndim == 2:
+            for ch in range(intro_array.shape[0]):
+                bass = lfilter(b_lo, a_lo, intro_array[ch])[:in_len]
+                rest = lfilter(b_hi, a_hi, intro_array[ch])[:in_len]
+                f_n[ch] = rest + bass * intro_bass_curve
+        else:
+            bass = lfilter(b_lo, a_lo, intro_array)[:in_len]
+            rest = lfilter(b_hi, a_hi, intro_array)[:in_len]
+            f_n = rest + bass * intro_bass_curve
 
         return f_m, f_n
+
+    except ImportError:
+        # No scipy: just return unmodified -- the volume crossfade will do all the work
+        return np.copy(outro_array), np.copy(intro_array)
 
 
 def apply_bass_swap(outro, intro, sr, **kwargs):

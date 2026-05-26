@@ -3,7 +3,7 @@
 The core engine is responsible for tracklist optimization (Simulated Annealing),
 parallel audio preprocessing, and the final sample-accurate mix reconstruction.
 
-Fixed: ProcessPoolExecutor→ThreadPoolExecutor, analyze_geometry 4-value destructuring,
+Fixed: ProcessPoolExecutor->ThreadPoolExecutor, analyze_geometry 4-value destructuring,
        librosa.resample guard, rubberband fallback, export error handling.
 """
 
@@ -25,7 +25,7 @@ from .dsp import (
     apply_dsp_filter, trim_silence, normalize_lufs,
     apply_bass_swap, apply_echo_out, apply_hpf_sweep,
     apply_limiter, apply_multiband_compression,
-    apply_log_fade, ArchetypeRegistry
+ ArchetypeRegistry
 )
 from .utils import pydub_to_ndarray, ndarray_to_pydub, export_rekordbox_xml
 from .version import __version__
@@ -81,7 +81,7 @@ def _resample_if_needed(y, sr, target_sr):
         y = librosa.resample(y, orig_sr=sr, target_sr=target_sr)
         return y, target_sr
     except ImportError:
-        print(f"  [WARN] librosa not available for resampling {sr}→{target_sr}. Using native SR.")
+        print(f"  [WARN] librosa not available for resampling {sr}->{target_sr}. Using native SR.")
         return y, sr
 
 
@@ -450,9 +450,9 @@ def compile_master_set(args, status_obj=None):
         m_body, m_outro = master[:-ms_trans], master[-ms_trans:]
         n_intro, n_body = nxt[:ms_trans], nxt[ms_trans:]
 
-        # Archetype Selection
+        # Archetype Selection -- 'auto' always uses bass-swap transition
         mode = getattr(args, 'archetype', 'auto')
-        if mode == 'auto' and meta_list[i]['genre'] == 'High-Energy':
+        if mode == 'auto':
             mode = 'progressive'
 
         dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass, 'ideal_p': ideal_p}
@@ -542,29 +542,34 @@ def compile_master_set(args, status_obj=None):
                     status_obj["status"] = f"Error: Export failed - {e}"
 
 
-def _gentle_crossfade(audio_array, fade_type='in'):
-    """Gentle volume crossfade designed to complement spectral EQ swap.
+def _dj_crossfade(audio_array, fade_type='in'):
+    """Equal-power crossfade designed for DJ mixer style transitions.
     
-    Unlike the aggressive sqrt() equal-power crossfade, this curve:
-    - Fade OUT: stays near unity until 50%, then drops smoothly to 0.
-      This prevents the outro from sounding "abruptly killed" when
-      combined with the LPF sweep in DualFilterSweep.
-    - Fade IN: smooth S-curve from 0 to 1.
+    This works WITH the bass swap in _apply_bass_swap_transition:
+    - The bass swap handles the low-frequency handoff (kick drum exchange)
+    - This crossfade handles the mid/high volume balance
+    - Together they create a smooth transition like a real DJ mixer
     
-    The S-curve shape (smoothstep) avoids the "hole" at the crossover
-    point while keeping both tracks audible during the overlap.
+    The curves are asymmetric to match DJ practice:
+    - Fade OUT (outro): gentle hold, then smooth release. The outro stays
+      audible until late in the transition because the bass swap already
+      reduced its low-end energy, making the remaining mid/high less prominent.
+    - Fade IN (intro): smooth equal-power rise. The intro's bass is already
+      managed by the swap, so we just need to bring up the overall level.
     """
     n = audio_array.shape[1] if audio_array.ndim == 2 else len(audio_array)
     x = np.linspace(0, 1, n)
     
     if fade_type == 'out':
-        # Outro: hold at near-unity, then smooth drop in second half
-        # Using raised cosine: 0.5 * (1 + cos(pi * x^1.5))
-        curve = 0.5 * (1 + np.cos(np.pi * x ** 1.5))
+        # Outro: equal-power fade with slight hold
+        # cos(pi*x/2) is the standard equal-power fade-out
+        # The slight x^0.8 exponent keeps it louder a bit longer
+        curve = np.cos(np.pi * x ** 0.8 / 2)
     else:
-        # Intro: smooth S-curve rise
-        # Using raised cosine: 0.5 * (1 - cos(pi * x^0.7))
-        curve = 0.5 * (1 - np.cos(np.pi * x ** 0.7))
+        # Intro: equal-power fade-in
+        # sin(pi*x/2) is the standard equal-power fade-in
+        # The slight x^1.2 exponent makes it come in a touch gentler
+        curve = np.sin(np.pi * x ** 1.2 / 2)
     
     if audio_array.ndim == 2:
         return audio_array * curve[np.newaxis, :]
@@ -579,12 +584,13 @@ def transition_render_worker(args):
         if arch_plugin:
             f_m_raw, f_n_raw = arch_plugin.apply(outro_raw, intro_raw, sr, **dsp_kwargs)
         else:
-            f_m_raw = apply_dsp_filter(outro_raw, sr, 'lowpass', dsp_kwargs.get('lowpass', 200.0))
-            f_n_raw = apply_dsp_filter(intro_raw, sr, 'highpass', dsp_kwargs.get('highpass', 150.0))
+            # Fallback: use the bass swap transition (same as progressive)
+            from .dsp import _apply_bass_swap_transition
+            f_m_raw, f_n_raw = _apply_bass_swap_transition(outro_raw, intro_raw, sr)
 
         # Apply gentle volume crossfade (complements EQ swap in DualFilterSweep)
-        f_m_faded = _gentle_crossfade(f_m_raw, fade_type='out')
-        f_n_faded = _gentle_crossfade(f_n_raw, fade_type='in')
+        f_m_faded = _dj_crossfade(f_m_raw, fade_type='out')
+        f_n_faded = _dj_crossfade(f_n_raw, fade_type='in')
 
         # Mix-Bus Summation
         min_len = min(f_m_faded.shape[1], f_n_faded.shape[1]) if f_m_faded.ndim == 2 else min(len(f_m_faded), len(f_n_faded))
