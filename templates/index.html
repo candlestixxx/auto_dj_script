@@ -185,6 +185,33 @@
         </div>
     </div>
 
+    <div id="performance-panel" style="background: #111118; padding: 20px; border-radius: 12px; border: 1px solid #1f1f2a; margin-top: 25px;">
+        <h3 style="margin-top: 0; color: #00ffcc; display: flex; align-items: center; gap: 10px;">
+            <span>📊</span> PERFORMANCE ANALYTICS
+        </h3>
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+            <div style="background: #08080a; padding: 15px; border-radius: 8px; border: 1px solid #1a1a24; font-size: 0.8em;">
+                <div style="margin-bottom: 10px; color: #888;">ROLLING AVERAGES</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span>Analysis:</span> <span id="avg-analysis" style="color: #00ffcc;">0.0s</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span>Warping:</span> <span id="avg-warping" style="color: #a020f0;">0.0s</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span>Mixing:</span> <span id="avg-mixing" style="color: #ffcc00;">0.0s</span>
+                </div>
+                <div style="margin-top: 15px; color: #888;">HEALTH</div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Error Rate:</span> <span id="error-rate" style="color: #ff5555;">0.0%</span>
+                </div>
+            </div>
+            <div style="height: 150px; background: #08080a; padding: 10px; border-radius: 8px; border: 1px solid #1a1a24;">
+                <canvas id="perfChart"></canvas>
+            </div>
+        </div>
+    </div>
+
     <div class="tracklist">
         <h3 style="margin-top: 0; color: #a020f0;">LIVE TRACKLIST</h3>
         <div class="track-item track-header">
@@ -207,7 +234,7 @@
 <script>
     let pollInterval = null;
     let scene, camera, renderer, terrainMesh;
-    let cpuChart, memChart;
+    let cpuChart, memChart, perfChart;
     let isPaused = false;
     const term = document.getElementById('terminal');
     const fill = document.getElementById('fill');
@@ -252,6 +279,13 @@
                 document.getElementById('midi-device-name').innerText = d.telemetry.midi_device;
                 document.getElementById('midi-status-light').style.background = d.telemetry.midi_active ? '#ffcc00' : '#333';
                 updateCharts(d.telemetry.cpu_usage, d.telemetry.memory_usage);
+            }
+
+            if (d.monitoring) {
+                document.getElementById('error-rate').innerText = d.monitoring.error_rate;
+                if (d.monitoring.averages) {
+                    updatePerfData(d.monitoring.averages);
+                }
             }
 
             if (d.tracklist) {
@@ -328,12 +362,48 @@
         const common = { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 }, x: { display: false } }, plugins: { legend: { display: false } } };
         cpuChart = new Chart(document.getElementById('cpuChart').getContext('2d'), { type: 'line', data: { labels: Array(30).fill(''), datasets: [{ data: Array(30).fill(0), borderColor: '#00ffcc', fill: true }] }, options: common });
         memChart = new Chart(document.getElementById('memChart').getContext('2d'), { type: 'line', data: { labels: Array(30).fill(''), datasets: [{ data: Array(30).fill(0), borderColor: '#a020f0', fill: true }] }, options: common });
+
+        perfChart = new Chart(document.getElementById('perfChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Analysis', 'Warping', 'Mixing'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['rgba(0, 255, 204, 0.5)', 'rgba(160, 32, 240, 0.5)', 'rgba(255, 204, 0, 0.5)'],
+                    borderColor: ['#00ffcc', '#a020f0', '#ffcc00'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#222' }, ticks: { color: '#888', font: { size: 10 } } },
+                    x: { ticks: { color: '#888', font: { size: 10 } } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
     }
 
     function updateCharts(cpu, mem) {
         if (!cpuChart) return;
         cpuChart.data.datasets[0].data.push(cpu); cpuChart.data.datasets[0].data.shift(); cpuChart.update('none');
         memChart.data.datasets[0].data.push(mem); memChart.data.datasets[0].data.shift(); memChart.update('none');
+    }
+
+    function updatePerfData(averages) {
+        if (!perfChart) return;
+        document.getElementById('avg-analysis').innerText = averages.avg_analysis.toFixed(2) + 's';
+        document.getElementById('avg-warping').innerText = averages.avg_warping.toFixed(2) + 's';
+        document.getElementById('avg-mixing').innerText = averages.avg_mixing.toFixed(2) + 's';
+
+        perfChart.data.datasets[0].data = [
+            averages.avg_analysis,
+            averages.avg_warping,
+            averages.avg_mixing
+        ];
+        perfChart.update('none');
     }
 
     document.getElementById('launch-form').onsubmit = async (e) => {
