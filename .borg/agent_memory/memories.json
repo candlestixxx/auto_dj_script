@@ -1,0 +1,1877 @@
+{
+  "version": 1,
+  "savedAt": "2026-05-29T18:26:29.707Z",
+  "memories": [
+    {
+      "id": "fa49552cafa6877d",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs\nLog tail: \"user\": 0, | \"agent\": 0, | \"project\": 2383, | \"discovery\": 0, | \"decision\": 0, | \"progress\": 0, | \"warning\": 0, | \"fix\": 0 | }, | \"recentContext\": [], | \"notes\": \"Automatic background handoff\" | }",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "2b41a51d-2c43-4fc7-8c37-10b2ab12d75b",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs/handoff_1779925908051.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:4fb787646d72",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:4fb787646d72",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs",
+          "restartCount": 0,
+          "startedAt": 1780078875513.7307,
+          "stoppedAt": 1780079129045,
+          "lastActivityAt": 1780078875513.7307,
+          "logTail": [
+            "\"user\": 0,",
+            "\"agent\": 0,",
+            "\"project\": 2383,",
+            "\"discovery\": 0,",
+            "\"decision\": 0,",
+            "\"progress\": 0,",
+            "\"warning\": 0,",
+            "\"fix\": 0",
+            "},",
+            "\"recentContext\": [],",
+            "\"notes\": \"Automatic background handoff\"",
+            "}"
+          ],
+          "recordedAt": 1780079129069,
+          "contentHash": "session-1875802860"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:29.070Z",
+      "accessedAt": "2026-05-29T18:25:29.070Z",
+      "accessCount": 0
+    },
+    {
+      "id": "092e0fec1507d196",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs\nLog tail: \"user\": 0, | \"agent\": 0, | \"project\": 2352, | \"discovery\": 0, | \"decision\": 0, | \"progress\": 0, | \"warning\": 0, | \"fix\": 0 | }, | \"recentContext\": [], | \"notes\": \"Automatic background handoff\" | }",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "f5e7f4da-0037-4a14-920c-9521f3a45e78",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs/handoff_1779925308036.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:70a3c3a24676",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:70a3c3a24676",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs",
+          "restartCount": 0,
+          "startedAt": 1780078875512.7432,
+          "stoppedAt": 1780079130956,
+          "lastActivityAt": 1780078875512.7432,
+          "logTail": [
+            "\"user\": 0,",
+            "\"agent\": 0,",
+            "\"project\": 2352,",
+            "\"discovery\": 0,",
+            "\"decision\": 0,",
+            "\"progress\": 0,",
+            "\"warning\": 0,",
+            "\"fix\": 0",
+            "},",
+            "\"recentContext\": [],",
+            "\"notes\": \"Automatic background handoff\"",
+            "}"
+          ],
+          "recordedAt": 1780079130973,
+          "contentHash": "session-1388318623"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:30.974Z",
+      "accessedAt": "2026-05-29T18:25:30.974Z",
+      "accessCount": 0
+    },
+    {
+      "id": "fd58b8960811252d",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs\nLog tail: \"user\": 0, | \"agent\": 0, | \"project\": 2383, | \"discovery\": 0, | \"decision\": 0, | \"progress\": 0, | \"warning\": 0, | \"fix\": 0 | }, | \"recentContext\": [], | \"notes\": \"Automatic background handoff\" | }",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "409ba154-628c-4b15-b3d2-60e3bf3f3e20",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs/handoff_1779925608046.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:68b2eb3b402d",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:68b2eb3b402d",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs",
+          "restartCount": 0,
+          "startedAt": 1780078875512.7432,
+          "stoppedAt": 1780079131612,
+          "lastActivityAt": 1780078875512.7432,
+          "logTail": [
+            "\"user\": 0,",
+            "\"agent\": 0,",
+            "\"project\": 2383,",
+            "\"discovery\": 0,",
+            "\"decision\": 0,",
+            "\"progress\": 0,",
+            "\"warning\": 0,",
+            "\"fix\": 0",
+            "},",
+            "\"recentContext\": [],",
+            "\"notes\": \"Automatic background handoff\"",
+            "}"
+          ],
+          "recordedAt": 1780079131627,
+          "contentHash": "session-875513956"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:31.627Z",
+      "accessedAt": "2026-05-29T18:25:31.627Z",
+      "accessCount": 0
+    },
+    {
+      "id": "699ba19753ef57f8",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs\nLog tail: \"user\": 0, | \"agent\": 0, | \"project\": 2352, | \"discovery\": 0, | \"decision\": 0, | \"progress\": 0, | \"warning\": 0, | \"fix\": 0 | }, | \"recentContext\": [], | \"notes\": \"Automatic background handoff\" | }",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "a220ae8e-6647-477a-a901-d1795607991a",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs/handoff_1779925008035.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:398f5deb2866",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:398f5deb2866",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs",
+          "restartCount": 0,
+          "startedAt": 1780078875511.7427,
+          "stoppedAt": 1780079132297,
+          "lastActivityAt": 1780078875511.7427,
+          "logTail": [
+            "\"user\": 0,",
+            "\"agent\": 0,",
+            "\"project\": 2352,",
+            "\"discovery\": 0,",
+            "\"decision\": 0,",
+            "\"progress\": 0,",
+            "\"warning\": 0,",
+            "\"fix\": 0",
+            "},",
+            "\"recentContext\": [],",
+            "\"notes\": \"Automatic background handoff\"",
+            "}"
+          ],
+          "recordedAt": 1780079132318,
+          "contentHash": "session-1778623940"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:32.318Z",
+      "accessedAt": "2026-05-29T18:25:32.318Z",
+      "accessCount": 0
+    },
+    {
+      "id": "5532019d79495a2e",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs\nLog tail: \"user\": 0, | \"agent\": 0, | \"project\": 2352, | \"discovery\": 0, | \"decision\": 0, | \"progress\": 0, | \"warning\": 0, | \"fix\": 0 | }, | \"recentContext\": [], | \"notes\": \"Automatic background handoff\" | }",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "efbd0857-f53e-4f96-9539-b6e91c942fe3",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs/handoff_1779924708032.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:f3d5759cbd09",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:f3d5759cbd09",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs",
+          "restartCount": 0,
+          "startedAt": 1780078875510.723,
+          "stoppedAt": 1780079132993,
+          "lastActivityAt": 1780078875510.723,
+          "logTail": [
+            "\"user\": 0,",
+            "\"agent\": 0,",
+            "\"project\": 2352,",
+            "\"discovery\": 0,",
+            "\"decision\": 0,",
+            "\"progress\": 0,",
+            "\"warning\": 0,",
+            "\"fix\": 0",
+            "},",
+            "\"recentContext\": [],",
+            "\"notes\": \"Automatic background handoff\"",
+            "}"
+          ],
+          "recordedAt": 1780079133009,
+          "contentHash": "session-945803436"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:33.009Z",
+      "accessedAt": "2026-05-29T18:25:33.009Z",
+      "accessCount": 0
+    },
+    {
+      "id": "8717d80f7f4b0398",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs\nLog tail: \"user\": 0, | \"agent\": 0, | \"project\": 2314, | \"discovery\": 0, | \"decision\": 0, | \"progress\": 0, | \"warning\": 0, | \"fix\": 0 | }, | \"recentContext\": [], | \"notes\": \"Automatic background handoff\" | }",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "ab011a19-193b-4690-bf86-9e7238599930",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs/handoff_1779924408022.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:9d6e324b9016",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:9d6e324b9016",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs",
+          "restartCount": 0,
+          "startedAt": 1780078875510.1838,
+          "stoppedAt": 1780079133627,
+          "lastActivityAt": 1780078875510.1838,
+          "logTail": [
+            "\"user\": 0,",
+            "\"agent\": 0,",
+            "\"project\": 2314,",
+            "\"discovery\": 0,",
+            "\"decision\": 0,",
+            "\"progress\": 0,",
+            "\"warning\": 0,",
+            "\"fix\": 0",
+            "},",
+            "\"recentContext\": [],",
+            "\"notes\": \"Automatic background handoff\"",
+            "}"
+          ],
+          "recordedAt": 1780079133639,
+          "contentHash": "session-973095313"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:33.640Z",
+      "accessedAt": "2026-05-29T18:25:33.640Z",
+      "accessCount": 0
+    },
+    {
+      "id": "b05e5320b3497014",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs\nLog tail: \"user\": 0, | \"agent\": 0, | \"project\": 2314, | \"discovery\": 0, | \"decision\": 0, | \"progress\": 0, | \"warning\": 0, | \"fix\": 0 | }, | \"recentContext\": [], | \"notes\": \"Automatic background handoff\" | }",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "5f860507-29de-4839-bc48-25e374aaee65",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs/handoff_1779924108023.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:bf6f54cf6533",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:bf6f54cf6533",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs",
+          "restartCount": 0,
+          "startedAt": 1780078875509.6772,
+          "stoppedAt": 1780079134245,
+          "lastActivityAt": 1780078875509.6772,
+          "logTail": [
+            "\"user\": 0,",
+            "\"agent\": 0,",
+            "\"project\": 2314,",
+            "\"discovery\": 0,",
+            "\"decision\": 0,",
+            "\"progress\": 0,",
+            "\"warning\": 0,",
+            "\"fix\": 0",
+            "},",
+            "\"recentContext\": [],",
+            "\"notes\": \"Automatic background handoff\"",
+            "}"
+          ],
+          "recordedAt": 1780079134262,
+          "contentHash": "session-1295465332"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:34.263Z",
+      "accessedAt": "2026-05-29T18:25:34.263Z",
+      "accessCount": 0
+    },
+    {
+      "id": "6a57c3943e9605f3",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs\nLog tail: \"user\": 0, | \"agent\": 0, | \"project\": 2314, | \"discovery\": 0, | \"decision\": 0, | \"progress\": 0, | \"warning\": 0, | \"fix\": 0 | }, | \"recentContext\": [], | \"notes\": \"Automatic background handoff\" | }",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "edcf63ba-7b19-4418-b34e-0f3d809f6dd2",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs/handoff_1779923808008.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:8b4dcb8872e5",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:8b4dcb8872e5",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs",
+          "restartCount": 0,
+          "startedAt": 1780078875508.34,
+          "stoppedAt": 1780079134969,
+          "lastActivityAt": 1780078875508.34,
+          "logTail": [
+            "\"user\": 0,",
+            "\"agent\": 0,",
+            "\"project\": 2314,",
+            "\"discovery\": 0,",
+            "\"decision\": 0,",
+            "\"progress\": 0,",
+            "\"warning\": 0,",
+            "\"fix\": 0",
+            "},",
+            "\"recentContext\": [],",
+            "\"notes\": \"Automatic background handoff\"",
+            "}"
+          ],
+          "recordedAt": 1780079134984,
+          "contentHash": "session-654163858"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:34.984Z",
+      "accessedAt": "2026-05-29T18:25:34.984Z",
+      "accessCount": 0
+    },
+    {
+      "id": "cad5812a7a960fb7",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs\nLog tail: \"user\": 0, | \"agent\": 0, | \"project\": 2270, | \"discovery\": 0, | \"decision\": 0, | \"progress\": 0, | \"warning\": 0, | \"fix\": 0 | }, | \"recentContext\": [], | \"notes\": \"Automatic background handoff\" | }",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "b82f5394-64f7-4c5e-86c3-30d8a1ed82fc",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs/handoff_1779923507995.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:43ed08365217",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:43ed08365217",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs",
+          "restartCount": 0,
+          "startedAt": 1780078875507.3513,
+          "stoppedAt": 1780079135684,
+          "lastActivityAt": 1780078875507.3513,
+          "logTail": [
+            "\"user\": 0,",
+            "\"agent\": 0,",
+            "\"project\": 2270,",
+            "\"discovery\": 0,",
+            "\"decision\": 0,",
+            "\"progress\": 0,",
+            "\"warning\": 0,",
+            "\"fix\": 0",
+            "},",
+            "\"recentContext\": [],",
+            "\"notes\": \"Automatic background handoff\"",
+            "}"
+          ],
+          "recordedAt": 1780079135700,
+          "contentHash": "session-1810024208"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:35.701Z",
+      "accessedAt": "2026-05-29T18:25:35.701Z",
+      "accessCount": 0
+    },
+    {
+      "id": "b823b16de631ab41",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs\nLog tail: \"user\": 0, | \"agent\": 0, | \"project\": 2270, | \"discovery\": 0, | \"decision\": 0, | \"progress\": 0, | \"warning\": 0, | \"fix\": 0 | }, | \"recentContext\": [], | \"notes\": \"Automatic background handoff\" | }",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "32ebd9b6-18d8-4b53-95ae-e9ccd29bf02f",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs/handoff_1779923207971.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:036ce74c4d9c",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:036ce74c4d9c",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/handoffs",
+          "restartCount": 0,
+          "startedAt": 1780078875506.3313,
+          "stoppedAt": 1780079136334,
+          "lastActivityAt": 1780078875506.3313,
+          "logTail": [
+            "\"user\": 0,",
+            "\"agent\": 0,",
+            "\"project\": 2270,",
+            "\"discovery\": 0,",
+            "\"decision\": 0,",
+            "\"progress\": 0,",
+            "\"warning\": 0,",
+            "\"fix\": 0",
+            "},",
+            "\"recentContext\": [],",
+            "\"notes\": \"Automatic background handoff\"",
+            "}"
+          ],
+          "recordedAt": 1780079136478,
+          "contentHash": "session-119165842"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:36.478Z",
+      "accessedAt": "2026-05-29T18:25:36.478Z",
+      "accessCount": 0
+    },
+    {
+      "id": "6fb86378d33d0588",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "{ (hypercode) ended with status imported.\nWorking directory: C:/Users/hyper/workspace/auto_dj_script/.hypercode/agent_memory\nLog tail: ], | \"recordedAt\": 1779925343003, | \"contentHash\": \"session-1447404871\" | }, | \"memoryKind\": \"session_summary\" | \"createdAt\": \"2026-05-27T23:42:23.004Z\", | \"accessedAt\": \"2026-05-27T23:42:23.004Z\", | \"accessCount\": 0 | } | ]",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "938d3093-5f51-47ae-9734-09c8da03c1df",
+        "sourcePath": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/agent_memory/memories.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "hypercode",
+          "imported"
+        ],
+        "sessionId": "imported:hypercode:4e2894f8d38f",
+        "structuredSessionSummary": {
+          "sessionId": "imported:hypercode:4e2894f8d38f",
+          "name": "{",
+          "cliType": "hypercode",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/agent_memory",
+          "restartCount": 0,
+          "startedAt": 1780078875504.3098,
+          "stoppedAt": 1780079137079,
+          "lastActivityAt": 1780078875504.3098,
+          "logTail": [
+            "],",
+            "\"recordedAt\": 1779925343003,",
+            "\"contentHash\": \"session-1447404871\"",
+            "},",
+            "\"memoryKind\": \"session_summary\"",
+            "\"createdAt\": \"2026-05-27T23:42:23.004Z\",",
+            "\"accessedAt\": \"2026-05-27T23:42:23.004Z\",",
+            "\"accessCount\": 0",
+            "}",
+            "]"
+          ],
+          "recordedAt": 1780079137403,
+          "contentHash": "session-1775107429"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:37.403Z",
+      "accessedAt": "2026-05-29T18:25:37.403Z",
+      "accessCount": 0
+    },
+    {
+      "id": "6c2fbf2fb56b365f",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "\"content\": \"*\\u0002��#\\u0000\\u0001\\u0001\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0002\\u0000\\u0000\\u0000\\u0001\\u0007version\\u00011\\u0000 (claude-code) ended with status imported.\\nWorking directory: C:/Users/hyper/AppData/Roaming/Claude/S",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "938d3093-5f51-47ae-9734-09c8da03c1df",
+        "sessionId": "imported:hypercode:4e2894f8d38f",
+        "path": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/agent_memory/memories.json",
+        "tags": [
+          "hypercode",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:25:38.059Z",
+      "accessedAt": "2026-05-29T18:25:38.059Z",
+      "accessCount": 0
+    },
+    {
+      "id": "02a7ee4e041076b4",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "\"source\": \"session_import\",",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "938d3093-5f51-47ae-9734-09c8da03c1df",
+        "sessionId": "imported:hypercode:4e2894f8d38f",
+        "path": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/agent_memory/memories.json",
+        "tags": [
+          "hypercode",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:25:38.676Z",
+      "accessedAt": "2026-05-29T18:25:38.676Z",
+      "accessCount": 0
+    },
+    {
+      "id": "f49b4f6cd5d82da7",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "\"importedSessionId\": \"232fb2dd-3c1f-4a1d-94c7-28c56d835ce8\",",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "938d3093-5f51-47ae-9734-09c8da03c1df",
+        "sessionId": "imported:hypercode:4e2894f8d38f",
+        "path": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/agent_memory/memories.json",
+        "tags": [
+          "hypercode",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:25:39.212Z",
+      "accessedAt": "2026-05-29T18:25:39.212Z",
+      "accessCount": 0
+    },
+    {
+      "id": "6d8afce6168710f7",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "\"sourcePath\": \"C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log\",",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "938d3093-5f51-47ae-9734-09c8da03c1df",
+        "sessionId": "imported:hypercode:4e2894f8d38f",
+        "path": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/agent_memory/memories.json",
+        "tags": [
+          "hypercode",
+          "memory"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:25:39.790Z",
+      "accessedAt": "2026-05-29T18:25:39.790Z",
+      "accessCount": 0
+    },
+    {
+      "id": "ae9b89d84e898bac",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "\"sessionId\": \"imported:claude-code:ac61de6c6e86\",",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "938d3093-5f51-47ae-9734-09c8da03c1df",
+        "sessionId": "imported:hypercode:4e2894f8d38f",
+        "path": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/agent_memory/memories.json",
+        "tags": [
+          "hypercode",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:25:40.464Z",
+      "accessedAt": "2026-05-29T18:25:40.464Z",
+      "accessCount": 0
+    },
+    {
+      "id": "6c8a1028df79f962",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "\"workingDirectory\": \"C:/Users/hyper/AppData/Roaming/Claude/Session Storage\",",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "hypercode",
+        "importedSessionId": "938d3093-5f51-47ae-9734-09c8da03c1df",
+        "sessionId": "imported:hypercode:4e2894f8d38f",
+        "path": "C:/Users/hyper/workspace/auto_dj_script/.hypercode/agent_memory/memories.json",
+        "tags": [
+          "hypercode",
+          "memory"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:25:54.175Z",
+      "accessedAt": "2026-05-29T18:25:54.175Z",
+      "accessCount": 0
+    },
+    {
+      "id": "68c4a594f10b7687",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Deep bobbybookmarks file scraper — extracts GitHub links from all MD, TXT files and atlas.json (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Deep bobbybookmarks file scraper — extracts GitHub links from all MD, TXT files and atlas.json",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "b2fca9ce-f388-4afd-b743-69242a87013a",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_bobby_files.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:fbc59d70fd5f",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:fbc59d70fd5f",
+          "name": "Deep bobbybookmarks file scraper — extracts GitHub links from all MD, TXT files and atlas.json",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071552502.511,
+          "stoppedAt": 1780079154743,
+          "lastActivityAt": 1780071552502.511,
+          "logTail": [
+            "Deep bobbybookmarks file scraper — extracts GitHub links from all MD, TXT files and atlas.json"
+          ],
+          "recordedAt": 1780079154762,
+          "contentHash": "session-1274859051"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:54.762Z",
+      "accessedAt": "2026-05-29T18:25:54.762Z",
+      "accessCount": 0
+    },
+    {
+      "id": "a1e333da69c71359",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Final wave scraper targeting korchasa, best-of-mcp, registry.mcp.so, vibehackers, MCPNest, Docker Hub, and extended GitH (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Final wave scraper targeting korchasa, best-of-mcp, registry.mcp.so, vibehackers, MCPNest, Docker Hub, and extended GitHub topics",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "a80f9b55-9cea-4078-afba-436e580d4411",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_final_wave.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:9f12216fc7d6",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:9f12216fc7d6",
+          "name": "Final wave scraper targeting korchasa, best-of-mcp, registry.mcp.so, vibehackers, MCPNest, Docker Hub, and extended GitH",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071479804.0122,
+          "stoppedAt": 1780079155332,
+          "lastActivityAt": 1780071479804.0122,
+          "logTail": [
+            "Final wave scraper targeting korchasa, best-of-mcp, registry.mcp.so, vibehackers, MCPNest, Docker Hub, and extended GitHub topics"
+          ],
+          "recordedAt": 1780079155346,
+          "contentHash": "session-1097361581"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:55.346Z",
+      "accessedAt": "2026-05-29T18:25:55.346Z",
+      "accessCount": 0
+    },
+    {
+      "id": "7426439e668e6a91",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Deep scraper targeting atlas.db full extraction, GitHub search extensions, NPM deep pagination, and directory tree walki (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Deep scraper targeting atlas.db full extraction, GitHub search extensions, NPM deep pagination, and directory tree walking",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "faee9c4d-742e-40c0-9042-a76efebc35fa",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_deep.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:b8a1124ca79f",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:b8a1124ca79f",
+          "name": "Deep scraper targeting atlas.db full extraction, GitHub search extensions, NPM deep pagination, and directory tree walki",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071340177.2754,
+          "stoppedAt": 1780079155951,
+          "lastActivityAt": 1780071340177.2754,
+          "logTail": [
+            "Deep scraper targeting atlas.db full extraction, GitHub search extensions, NPM deep pagination, and directory tree walking"
+          ],
+          "recordedAt": 1780079155964,
+          "contentHash": "session-311090044"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:55.964Z",
+      "accessedAt": "2026-05-29T18:25:55.964Z",
+      "accessCount": 0
+    },
+    {
+      "id": "623c66e5c156b0cd",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Official MCP registry scraper plus ever-works mega-list and additional sources (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Official MCP registry scraper plus ever-works mega-list and additional sources",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "e9426f3f-3a09-453e-84cf-adaa828bfdec",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_official_registry.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:82e1f6826ae9",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:82e1f6826ae9",
+          "name": "Official MCP registry scraper plus ever-works mega-list and additional sources",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071243392.0566,
+          "stoppedAt": 1780079156558,
+          "lastActivityAt": 1780071243392.0566,
+          "logTail": [
+            "Official MCP registry scraper plus ever-works mega-list and additional sources"
+          ],
+          "recordedAt": 1780079156572,
+          "contentHash": "session-1258038819"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:56.572Z",
+      "accessedAt": "2026-05-29T18:25:56.572Z",
+      "accessCount": 0
+    },
+    {
+      "id": "97055650a3be8f8c",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Extended round-2 scraper covering additional NPM orgs, JSON lists, cursor.directory, Composio, OpenTools, Plugged.in, an (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Extended round-2 scraper covering additional NPM orgs, JSON lists, cursor.directory, Composio, OpenTools, Plugged.in, and MCPPedia",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "7b252966-84d1-4b61-9b39-3f4f5ca4716d",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_extended.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:7d1b4d21cad0",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:7d1b4d21cad0",
+          "name": "Extended round-2 scraper covering additional NPM orgs, JSON lists, cursor.directory, Composio, OpenTools, Plugged.in, an",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780071116566.3289,
+          "stoppedAt": 1780079157152,
+          "lastActivityAt": 1780071116566.3289,
+          "logTail": [
+            "Extended round-2 scraper covering additional NPM orgs, JSON lists, cursor.directory, Composio, OpenTools, Plugged.in, and MCPPedia"
+          ],
+          "recordedAt": 1780079157165,
+          "contentHash": "session-1607955803"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:57.166Z",
+      "accessedAt": "2026-05-29T18:25:57.166Z",
+      "accessCount": 0
+    },
+    {
+      "id": "a5168b27c31db28b",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Comprehensive MCP directory scraper hitting PulseMCP, Glama, mcp.so, MCPHub, and other registries (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Comprehensive MCP directory scraper hitting PulseMCP, Glama, mcp.so, MCPHub, and other registries",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "65eef9b7-6d94-440c-88e1-2780afb2a279",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_mcp_directories.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:aaeb8356c76b",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:aaeb8356c76b",
+          "name": "Comprehensive MCP directory scraper hitting PulseMCP, Glama, mcp.so, MCPHub, and other registries",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780070955934.1665,
+          "stoppedAt": 1780079157804,
+          "lastActivityAt": 1780070955934.1665,
+          "logTail": [
+            "Comprehensive MCP directory scraper hitting PulseMCP, Glama, mcp.so, MCPHub, and other registries"
+          ],
+          "recordedAt": 1780079157818,
+          "contentHash": "session-1801689290"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:57.818Z",
+      "accessedAt": "2026-05-29T18:25:57.818Z",
+      "accessCount": 0
+    },
+    {
+      "id": "0dceaa9901a8b325",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Find top MCP domains in atlas.db (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Find top MCP domains in atlas.db",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "a7dbf6ab-dd89-442b-b235-a5f843082cbe",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/find_domains.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:1714f9a07e57",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:1714f9a07e57",
+          "name": "Find top MCP domains in atlas.db",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780070820080.775,
+          "stoppedAt": 1780079158440,
+          "lastActivityAt": 1780070820080.775,
+          "logTail": [
+            "Find top MCP domains in atlas.db"
+          ],
+          "recordedAt": 1780079158464,
+          "contentHash": "session-799397370"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:58.464Z",
+      "accessedAt": "2026-05-29T18:25:58.464Z",
+      "accessCount": 0
+    },
+    {
+      "id": "d257ce9d32683e60",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Advanced database scraper to extract and import all 6,759 GitHub repositories from atlas.db into published_mcp_servers i (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Advanced database scraper to extract and import all 6,759 GitHub repositories from atlas.db into published_mcp_servers in borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "fea55f8b-5f54-46fe-9fae-f7e9938f8d75",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/ingest_all_atlas_github.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:2dfb9cd3bd14",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:2dfb9cd3bd14",
+          "name": "Advanced database scraper to extract and import all 6,759 GitHub repositories from atlas.db into published_mcp_servers i",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780069801461.765,
+          "stoppedAt": 1780079159107,
+          "lastActivityAt": 1780069801461.765,
+          "logTail": [
+            "Advanced database scraper to extract and import all 6,759 GitHub repositories from atlas.db into published_mcp_servers in borg.db."
+          ],
+          "recordedAt": 1780079159130,
+          "contentHash": "session-1533758123"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:25:59.130Z",
+      "accessedAt": "2026-05-29T18:25:59.130Z",
+      "accessCount": 0
+    },
+    {
+      "id": "4fd0edf2bac566eb",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Advanced database scraper to extract and import all 6,759 GitHub repositories from atlas.db into published_mcp_servers in borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "fea55f8b-5f54-46fe-9fae-f7e9938f8d75",
+        "sessionId": "imported:antigravity:2dfb9cd3bd14",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/ingest_all_atlas_github.py.metadata.json",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking",
+          "database",
+          "mcp"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:25:59.784Z",
+      "accessedAt": "2026-05-29T18:25:59.784Z",
+      "accessCount": 0
+    },
+    {
+      "id": "16c170317fcad9d5",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Ingestion script to extract additional MCP repository targets from bobbybookmarks raw text files and sync them to borg.d (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Ingestion script to extract additional MCP repository targets from bobbybookmarks raw text files and sync them to borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "c3299432-f41d-46f5-89b1-d4a2a47bba56",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/ingest_text_lists.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:51dadc1c2578",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:51dadc1c2578",
+          "name": "Ingestion script to extract additional MCP repository targets from bobbybookmarks raw text files and sync them to borg.d",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780069725186.6594,
+          "stoppedAt": 1780079160435,
+          "lastActivityAt": 1780069725186.6594,
+          "logTail": [
+            "Ingestion script to extract additional MCP repository targets from bobbybookmarks raw text files and sync them to borg.db."
+          ],
+          "recordedAt": 1780079160451,
+          "contentHash": "session-649795225"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:00.452Z",
+      "accessedAt": "2026-05-29T18:26:00.452Z",
+      "accessCount": 0
+    },
+    {
+      "id": "8446dd8445770b2a",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Trigger script to execute live MCP catalog ingestion across all built-in adapters (Smithery, Glama, NPM, Github, etc.) w (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Trigger script to execute live MCP catalog ingestion across all built-in adapters (Smithery, Glama, NPM, Github, etc.) with absolute path.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "a2ebea72-a383-4e8e-b6cb-5b7d6810bacb",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/trigger_ingest.ts.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:2af51572257a",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:2af51572257a",
+          "name": "Trigger script to execute live MCP catalog ingestion across all built-in adapters (Smithery, Glama, NPM, Github, etc.) w",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780068776592.9336,
+          "stoppedAt": 1780079161080,
+          "lastActivityAt": 1780068776592.9336,
+          "logTail": [
+            "Trigger script to execute live MCP catalog ingestion across all built-in adapters (Smithery, Glama, NPM, Github, etc.) with absolute path."
+          ],
+          "recordedAt": 1780079161105,
+          "contentHash": "session-1496668288"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:01.106Z",
+      "accessedAt": "2026-05-29T18:26:01.106Z",
+      "accessCount": 0
+    },
+    {
+      "id": "8ad30d2f77e89d33",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Trigger script to execute live MCP catalog ingestion across all built-in adapters (Smithery, Glama, NPM, Github, etc.) with absolute path.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "a2ebea72-a383-4e8e-b6cb-5b7d6810bacb",
+        "sessionId": "imported:antigravity:2af51572257a",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/trigger_ingest.ts.metadata.json",
+        "tags": [
+          "antigravity",
+          "memory",
+          "mcp",
+          "ui"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:01.786Z",
+      "accessedAt": "2026-05-29T18:26:01.786Z",
+      "accessCount": 0
+    },
+    {
+      "id": "89ba706ba0effb61",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Scraper script to extract repository links from awesome-mcp-servers raw markdowns and upsert them as canonical servers i (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Scraper script to extract repository links from awesome-mcp-servers raw markdowns and upsert them as canonical servers into borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "7450d2f6-6980-4595-a15a-104bc25f3312",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/scrape_awesome_lists.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:61ba82056dbf",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:61ba82056dbf",
+          "name": "Scraper script to extract repository links from awesome-mcp-servers raw markdowns and upsert them as canonical servers i",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780068655127.078,
+          "stoppedAt": 1780079162411,
+          "lastActivityAt": 1780068655127.078,
+          "logTail": [
+            "Scraper script to extract repository links from awesome-mcp-servers raw markdowns and upsert them as canonical servers into borg.db."
+          ],
+          "recordedAt": 1780079162427,
+          "contentHash": "session-1430374691"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:02.427Z",
+      "accessedAt": "2026-05-29T18:26:02.427Z",
+      "accessCount": 0
+    },
+    {
+      "id": "f65ac0f68e345003",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- [x] Create `scratch/sync_mcp_catalog.py` script (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43\nLog tail: - [x] Create `scratch/sync_mcp_catalog.py` script | - [x] Implement MCP registry extraction from bookmarks.db and atlas.db | - [x] Implement MCP server URL normalization and deduplication logic | - [x] Implement feature extraction (tools) and recipe generation | - [x] Implement imported_sessions deduplication | - [x] Implement imported_session_memories deduplication | - [x] Execute validation run and print migration statistics",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "a69c1251-0d5b-440d-9cc7-6358ce6ca901",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/task.md",
+        "sessionFormat": "md",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:c6692b4de997",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:c6692b4de997",
+          "name": "- [x] Create `scratch/sync_mcp_catalog.py` script",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43",
+          "restartCount": 0,
+          "startedAt": 1780067999489.991,
+          "stoppedAt": 1780079163086,
+          "lastActivityAt": 1780067999489.991,
+          "logTail": [
+            "- [x] Create `scratch/sync_mcp_catalog.py` script",
+            "- [x] Implement MCP registry extraction from bookmarks.db and atlas.db",
+            "- [x] Implement MCP server URL normalization and deduplication logic",
+            "- [x] Implement feature extraction (tools) and recipe generation",
+            "- [x] Implement imported_sessions deduplication",
+            "- [x] Implement imported_session_memories deduplication",
+            "- [x] Execute validation run and print migration statistics"
+          ],
+          "recordedAt": 1780079163118,
+          "contentHash": "session-381452004"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:03.118Z",
+      "accessedAt": "2026-05-29T18:26:03.118Z",
+      "accessCount": 0
+    },
+    {
+      "id": "51906d92f6c75d98",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- [x] Implement imported_sessions deduplication",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "a69c1251-0d5b-440d-9cc7-6358ce6ca901",
+        "sessionId": "imported:antigravity:c6692b4de997",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/task.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:03.752Z",
+      "accessedAt": "2026-05-29T18:26:03.752Z",
+      "accessCount": 0
+    },
+    {
+      "id": "5d4d4d9d4d08c6f8",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- [x] Implement imported_session_memories deduplication",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "a69c1251-0d5b-440d-9cc7-6358ce6ca901",
+        "sessionId": "imported:antigravity:c6692b4de997",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/task.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:04.381Z",
+      "accessedAt": "2026-05-29T18:26:04.381Z",
+      "accessCount": 0
+    },
+    {
+      "id": "00ecf525d3a7a042",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Database synchronization script to ingest new MCP servers, extract features (tools), generate baseline recipes, and dedu (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Database synchronization script to ingest new MCP servers, extract features (tools), generate baseline recipes, and deduplicate matching servers, sessions, memories, and prompts inside borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "01df602b-d6cc-4617-8287-13dfcc5df308",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/sync_mcp_catalog.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:7b48e502ce76",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:7b48e502ce76",
+          "name": "Database synchronization script to ingest new MCP servers, extract features (tools), generate baseline recipes, and dedu",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780067980878.4165,
+          "stoppedAt": 1780079164961,
+          "lastActivityAt": 1780067980878.4165,
+          "logTail": [
+            "Database synchronization script to ingest new MCP servers, extract features (tools), generate baseline recipes, and deduplicate matching servers, sessions, memories, and prompts inside borg.db."
+          ],
+          "recordedAt": 1780079164977,
+          "contentHash": "session-1644936613"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:04.977Z",
+      "accessedAt": "2026-05-29T18:26:04.977Z",
+      "accessCount": 0
+    },
+    {
+      "id": "d20e0c1d206b2334",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Checklist of tasks to ingest and consolidate MCP servers, sessions, memories, and prompts inside borg.db. (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43\nLog tail: Checklist of tasks to ingest and consolidate MCP servers, sessions, memories, and prompts inside borg.db.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "b6c25e59-2854-400f-af78-e724ad2b96f0",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/task.md.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:07d6c77a3a62",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:07d6c77a3a62",
+          "name": "Checklist of tasks to ingest and consolidate MCP servers, sessions, memories, and prompts inside borg.db.",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43",
+          "restartCount": 0,
+          "startedAt": 1780067973732.438,
+          "stoppedAt": 1780079165587,
+          "lastActivityAt": 1780067973732.438,
+          "logTail": [
+            "Checklist of tasks to ingest and consolidate MCP servers, sessions, memories, and prompts inside borg.db."
+          ],
+          "recordedAt": 1780079165606,
+          "contentHash": "session-1237956555"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:05.606Z",
+      "accessedAt": "2026-05-29T18:26:05.606Z",
+      "accessCount": 0
+    },
+    {
+      "id": "78d6d56c4023ceb2",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Implementation plan to ingest new MCP servers from bobbybookmarks, extract and scrape their tools, and dedup/consolidate (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43\nLog tail: Implementation plan to ingest new MCP servers from bobbybookmarks, extract and scrape their tools, and dedup/consolidate matching servers, sessions, memories, and prompts inside the canonical borg.db database.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "7beb5dda-3688-46e4-9b8a-d66ac06c3f95",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:ede9f2bfeb50",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:ede9f2bfeb50",
+          "name": "Implementation plan to ingest new MCP servers from bobbybookmarks, extract and scrape their tools, and dedup/consolidate",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43",
+          "restartCount": 0,
+          "startedAt": 1780067972136.0176,
+          "stoppedAt": 1780079166211,
+          "lastActivityAt": 1780067972136.0176,
+          "logTail": [
+            "Implementation plan to ingest new MCP servers from bobbybookmarks, extract and scrape their tools, and dedup/consolidate matching servers, sessions, memories, and prompts inside the canonical borg.db database."
+          ],
+          "recordedAt": 1780079166226,
+          "contentHash": "session-916392996"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:06.226Z",
+      "accessedAt": "2026-05-29T18:26:06.226Z",
+      "accessCount": 0
+    },
+    {
+      "id": "41c165bb45ad299d",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "# Implementation Plan - Ingest & Dedup MCP Server Catalog and Sessions/Memories (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43\nLog tail: 3. **Memory Deduplication**: | - Scan `imported_session_memories` and `web_memories` to identify duplicate memory fragments (same session, matching content/type). | - Clean up duplicates to streamline model context storage. | 4. **Prompt Deduplication**: | - Check tables storing saved scripts or prompts and clean up duplicates if any are found. | ## Verification Plan | ### Automated Run | - Run the python script safely using the environment python adapter. | - Verify total row counts in `published_mcp_servers`, `imported_sessions`, and `imported_session_memories` before and after the run. | - Log complete statistics of the number of servers added, servers consolidated, sessions deduplicated, and memories pruned.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "71d64242-a305-470d-875d-73c77a3a5b7c",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "sessionFormat": "md",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:9de77a58fb74",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:9de77a58fb74",
+          "name": "# Implementation Plan - Ingest & Dedup MCP Server Catalog and Sessions/Memories",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43",
+          "restartCount": 0,
+          "startedAt": 1780067972135.0015,
+          "stoppedAt": 1780079179497,
+          "lastActivityAt": 1780067972135.0015,
+          "logTail": [
+            "3. **Memory Deduplication**:",
+            "- Scan `imported_session_memories` and `web_memories` to identify duplicate memory fragments (same session, matching content/type).",
+            "- Clean up duplicates to streamline model context storage.",
+            "4. **Prompt Deduplication**:",
+            "- Check tables storing saved scripts or prompts and clean up duplicates if any are found.",
+            "## Verification Plan",
+            "### Automated Run",
+            "- Run the python script safely using the environment python adapter.",
+            "- Verify total row counts in `published_mcp_servers`, `imported_sessions`, and `imported_session_memories` before and after the run.",
+            "- Log complete statistics of the number of servers added, servers consolidated, sessions deduplicated, and memories pruned."
+          ],
+          "recordedAt": 1780079179565,
+          "contentHash": "session-472148957"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:19.565Z",
+      "accessedAt": "2026-05-29T18:26:19.565Z",
+      "accessCount": 0
+    },
+    {
+      "id": "47da06c9c69bde15",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "#### [NEW] [sync_mcp_catalog.py](file:///C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/sync_mcp_catalog.py)",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "71d64242-a305-470d-875d-73c77a3a5b7c",
+        "sessionId": "imported:antigravity:9de77a58fb74",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "mcp"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:20.230Z",
+      "accessedAt": "2026-05-29T18:26:20.230Z",
+      "accessCount": 0
+    },
+    {
+      "id": "5d54bf497bbbdb4f",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- Group `imported_sessions` by `title`, `source_path`, or `transcript_hash`.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "71d64242-a305-470d-875d-73c77a3a5b7c",
+        "sessionId": "imported:antigravity:9de77a58fb74",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:20.857Z",
+      "accessedAt": "2026-05-29T18:26:20.857Z",
+      "accessCount": 0
+    },
+    {
+      "id": "534641ed61125fc9",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- Remove duplicate sessions while maintaining foreign key integrity for `imported_session_memories`.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "71d64242-a305-470d-875d-73c77a3a5b7c",
+        "sessionId": "imported:antigravity:9de77a58fb74",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:21.474Z",
+      "accessedAt": "2026-05-29T18:26:21.474Z",
+      "accessCount": 0
+    },
+    {
+      "id": "f69852e0e4d4be10",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- Scan `imported_session_memories` and `web_memories` to identify duplicate memory fragments (same session, matching content/type).",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "71d64242-a305-470d-875d-73c77a3a5b7c",
+        "sessionId": "imported:antigravity:9de77a58fb74",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:22.126Z",
+      "accessedAt": "2026-05-29T18:26:22.126Z",
+      "accessCount": 0
+    },
+    {
+      "id": "509b2534b48831f8",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "- Verify total row counts in `published_mcp_servers`, `imported_sessions`, and `imported_session_memories` before and after the run.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "71d64242-a305-470d-875d-73c77a3a5b7c",
+        "sessionId": "imported:antigravity:9de77a58fb74",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "networking",
+          "mcp"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:22.723Z",
+      "accessedAt": "2026-05-29T18:26:22.723Z",
+      "accessCount": 0
+    },
+    {
+      "id": "38925ed07bf25a39",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "### Scratch Utility #### [NEW] [sync_mcp_catalog.py](file:///C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/sync_mcp_catalog.py) A comprehensive python script implementing: 1.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "71d64242-a305-470d-875d-73c77a3a5b7c",
+        "sessionId": "imported:antigravity:9de77a58fb74",
+        "path": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/implementation_plan.md",
+        "tags": [
+          "antigravity",
+          "memory",
+          "mcp"
+        ],
+        "section": "general",
+        "memoryKind": "memory",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:23.347Z",
+      "accessedAt": "2026-05-29T18:26:23.347Z",
+      "accessCount": 0
+    },
+    {
+      "id": "24eb5bed10d177fe",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Search atlas.db for MCP entries (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Search atlas.db for MCP entries",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "94941b6f-16ab-4be4-8f2f-34921104e167",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/read_db.py.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:ffc1da5841a2",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:ffc1da5841a2",
+          "name": "Search atlas.db for MCP entries",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780067872199.347,
+          "stoppedAt": 1780079184002,
+          "lastActivityAt": 1780067872199.347,
+          "logTail": [
+            "Search atlas.db for MCP entries"
+          ],
+          "recordedAt": 1780079184014,
+          "contentHash": "session-880848205"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:24.014Z",
+      "accessedAt": "2026-05-29T18:26:24.014Z",
+      "accessCount": 0
+    },
+    {
+      "id": "520b955aa8fc49b3",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "Wrote a comprehensive program for the private scratch pad to connect to the Hypercode MCP server stdio interface, list a (antigravity) ended with status imported.\nWorking directory: C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch\nLog tail: Wrote a comprehensive program for the private scratch pad to connect to the Hypercode MCP server stdio interface, list all tools, and call specific target tools with fully populated arguments, capturing Pass/Fail results.",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "antigravity",
+        "importedSessionId": "8235339b-e895-45c7-8def-2f6479cace74",
+        "sourcePath": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch/test_all_tools.mjs.metadata.json",
+        "sessionFormat": "json",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "antigravity",
+          "imported"
+        ],
+        "sessionId": "imported:antigravity:70285134f579",
+        "structuredSessionSummary": {
+          "sessionId": "imported:antigravity:70285134f579",
+          "name": "Wrote a comprehensive program for the private scratch pad to connect to the Hypercode MCP server stdio interface, list a",
+          "cliType": "antigravity",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/.gemini/antigravity/brain/e88bac4f-e064-4c4b-bf5f-17f3373dac43/scratch",
+          "restartCount": 0,
+          "startedAt": 1780065035786.0376,
+          "stoppedAt": 1780079184708,
+          "lastActivityAt": 1780065035786.0376,
+          "logTail": [
+            "Wrote a comprehensive program for the private scratch pad to connect to the Hypercode MCP server stdio interface, list all tools, and call specific target tools with fully populated arguments, capturing Pass/Fail results."
+          ],
+          "recordedAt": 1780079184724,
+          "contentHash": "session-1170136532"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:24.724Z",
+      "accessedAt": "2026-05-29T18:26:24.724Z",
+      "accessCount": 0
+    },
+    {
+      "id": "dd4aed244fc41fb7",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "*\u0002��#\u0000\u0001\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001\u0007version\u00011\u0000 (claude-code) ended with status imported.\nWorking directory: C:/Users/hyper/AppData/Roaming/Claude/Session Storage\nLog tail: � \u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�� | � \u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u001e�u�b\u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000291\u0001Anamespace-d2d51c9d_5c36_484f_9904_e6bc98c8c626-https://claude.ai/\u000290z�(Kd\u0000\u0001)\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000292\u0001Cnamespace-d2d51c9d_5c36_484f_9904_e6bc98c8c626-https://a.claude.ai/\u000291\"{m� \u0000\u0001+\u0002\u0000\u0000\u0000 | Y\u0000\u0001/\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001$map-92-SSS-shouldShowDesktopTutorial\bt\u0000r\u0000u\u0000e\u0000\u0001\u0013map-92-_dd_prev_p4n\bt\u0000r\u0000u\u0000e\u00005Cq}d\u0000\u00011\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000294\u0001Cnamespace-b6f795ab_0b6c_4a25_baf3_4ad0a777dfe9-https://a.claude.ai/\u000293*�2\"\u0000\u00013\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0014map-92-intercom-testN",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "51326385-a3bc-499f-9572-5215eece8656",
+        "sourcePath": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "sessionFormat": "log",
+        "section": "general",
+        "tags": [
+          "session-summary",
+          "claude-code",
+          "imported"
+        ],
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "structuredSessionSummary": {
+          "sessionId": "imported:claude-code:5f7c70a8112a",
+          "name": "*\u0002��#\u0000\u0001\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001\u0007version\u00011\u0000",
+          "cliType": "claude-code",
+          "status": "imported",
+          "workingDirectory": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage",
+          "restartCount": 0,
+          "startedAt": 1780058193699.2986,
+          "stoppedAt": 1780079185453,
+          "lastActivityAt": 1780058193699.2986,
+          "logTail": [
+            "� \u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��",
+            "� \u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u001e�u�b\u0000\u0001'\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000291\u0001Anamespace-d2d51c9d_5c36_484f_9904_e6bc98c8c626-https://claude.ai/\u000290z�(Kd\u0000\u0001)\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000292\u0001Cnamespace-d2d51c9d_5c36_484f_9904_e6bc98c8c626-https://a.claude.ai/\u000291\"{m� \u0000\u0001+\u0002\u0000\u0000\u0000",
+            "Y\u0000\u0001/\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001$map-92-SSS-shouldShowDesktopTutorial\bt\u0000r\u0000u\u0000e\u0000\u0001\u0013map-92-_dd_prev_p4n\bt\u0000r\u0000u\u0000e\u00005Cq}d\u0000\u00011\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000294\u0001Cnamespace-b6f795ab_0b6c_4a25_baf3_4ad0a777dfe9-https://a.claude.ai/\u000293*�2\"\u0000\u00013\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0014map-92-intercom-testN"
+          ],
+          "recordedAt": 1780079185531,
+          "contentHash": "session-577920617"
+        },
+        "memoryKind": "session_summary"
+      },
+      "createdAt": "2026-05-29T18:26:25.531Z",
+      "accessedAt": "2026-05-29T18:26:25.531Z",
+      "accessCount": 0
+    },
+    {
+      "id": "ad13d87733651b70",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "map-21-_mf\u0000 map-21-id8Z\u00169b\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000223\u0001Anamespace-49c23fff_edec_43d9_9a2e_c10a859ab393-https://claude.ai/\u000222�q4�=\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001$map-22-SSS-shouldShowDesktopTutorial",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "51326385-a3bc-499f-9572-5215eece8656",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:26.280Z",
+      "accessedAt": "2026-05-29T18:26:26.280Z",
+      "accessCount": 0
+    },
+    {
+      "id": "6df87fd6b247a68b",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "f\u0000a\u0000l\u0000s\u0000e\u00006K��\"\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0014map-28-intercom-test�,W�b\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000230\u0001Anamespace-2b0d9911_4f4f_424b_99ee_ef4bfbba32b5-https://claude.ai/\u000229A˻\u0012=\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001$map-29-SSS-shouldShowDesktopTutorial",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "51326385-a3bc-499f-9572-5215eece8656",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:26.928Z",
+      "accessedAt": "2026-05-29T18:26:26.928Z",
+      "accessCount": 0
+    },
+    {
+      "id": "8cabe2c613d26bf5",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "f\u0000a\u0000l\u0000s\u0000e\u0000\u0017>��\"\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0014map-29-intercom-test �1%b\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000231\u0001Anamespace-bef62ca3_e463_4697_8849_ca3df3de05c2-https://claude.ai/\u000230����S\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001$map-30-SSS-shouldShowDesktopTutorial",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "51326385-a3bc-499f-9572-5215eece8656",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:27.556Z",
+      "accessedAt": "2026-05-29T18:26:27.556Z",
+      "accessCount": 0
+    },
+    {
+      "id": "fb9b1c1f7292eb37",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "f\u0000a\u0000l\u0000s\u0000e\u0000\u0000\u0014map-33-intercom-test�\u0000�� \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000�\u0000�� \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u00000|�7u\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000Anamespace-a88845b9_45ca_44fa_a55f_7f0ace8f77fe-https://claude.ai/\u0000$map-33-SSS-shouldShowDesktopTutorial��;�b\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000235\u0001Anamespace",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "51326385-a3bc-499f-9572-5215eece8656",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:28.170Z",
+      "accessedAt": "2026-05-29T18:26:28.170Z",
+      "accessCount": 0
+    },
+    {
+      "id": "ae6cdca41ca4cf5b",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "f\u0000a\u0000l\u0000s\u0000e\u0000\u0000\u0014map-34-intercom-test1�E \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u00001�E \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000����u\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000Anamespace-4bc077e9_b8b2_43bd_8089_6943483d5d3a-https://claude.ai/\u0000$map-34-SSS-shouldShowDesktopTutorial!rHXb\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000236\u0001Anamespace-1",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "51326385-a3bc-499f-9572-5215eece8656",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:28.853Z",
+      "accessedAt": "2026-05-29T18:26:28.853Z",
+      "accessCount": 0
+    },
+    {
+      "id": "c6dc0f12d9606671",
+      "type": "long_term",
+      "namespace": "project",
+      "content": "f\u0000a\u0000l\u0000s\u0000e\u0000\u0000\u0014map-35-intercom-test��\u0006� \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��\u0006� \u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000`?o�u\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000Anamespace-16138b95_f484_4162_8c69_92abc8001d7b-https://claude.ai/\u0000$map-35-SSS-shouldShowDesktopTutorial^��b\u0000\u0001�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0001 next-map-id\u000237\u0001Anamespace-",
+      "metadata": {
+        "source": "session_import",
+        "sourceTool": "claude-code",
+        "importedSessionId": "51326385-a3bc-499f-9572-5215eece8656",
+        "sessionId": "imported:claude-code:5f7c70a8112a",
+        "path": "C:/Users/hyper/AppData/Roaming/Claude/Session Storage/000003.log",
+        "tags": [
+          "claude-code",
+          "instruction",
+          "networking",
+          "validation"
+        ],
+        "section": "instructions",
+        "memoryKind": "instruction",
+        "extractionSource": "heuristic"
+      },
+      "createdAt": "2026-05-29T18:26:29.534Z",
+      "accessedAt": "2026-05-29T18:26:29.534Z",
+      "accessCount": 0
+    }
+  ]
+}
