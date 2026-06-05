@@ -1,4 +1,4 @@
-""" Core Orchestration Engine | Auto DJ Script (8.11.0)
+"""Core Orchestration Engine | Auto DJ Script (8.11.0)
 ==================================================
 The core engine is responsible for tracklist optimization (Simulated Annealing),
 parallel audio preprocessing, and the final sample-accurate mix reconstruction.
@@ -7,27 +7,28 @@ Fixed: ProcessPoolExecutor->ThreadPoolExecutor, analyze_geometry 4-value destruc
        librosa.resample guard, rubberband fallback, export error handling.
 """
 
-import os, glob, re, random, json, subprocess, io
+import os
+import random
+import subprocess
 import soundfile as sf
 import numpy as np
-from pydub import AudioSegment
-from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 import config
 
 from .analysis import (
-    get_native_bpm, get_musical_key, analyze_geometry,
-    get_camelot_key, is_harmonically_compatible,
-    get_energy_profile, detect_phrases, get_genre_archetype,
-    find_sync_offset, identify_loopable_phrase, extract_spectral_terrain
+    get_native_bpm,
+    get_musical_key,
+    analyze_geometry,
+    get_camelot_key,
+    is_harmonically_compatible,
+    get_energy_profile,
+    detect_phrases,
+    get_genre_archetype,
+    find_sync_offset,
+    extract_spectral_terrain,
 )
-from .dsp import (
-    apply_dsp_filter, trim_silence, normalize_lufs,
-    apply_bass_swap, apply_echo_out, apply_hpf_sweep,
-    apply_limiter, apply_multiband_compression,
- ArchetypeRegistry
-)
-from .utils import pydub_to_ndarray, ndarray_to_pydub, export_rekordbox_xml
+from .dsp import trim_silence, normalize_lufs, apply_limiter, ArchetypeRegistry
+from .utils import pydub_to_ndarray, ndarray_to_pydub
 from .version import __version__
 from .cluster import cluster
 from .monitoring import monitor
@@ -57,7 +58,7 @@ def wait_for_health(status_obj):
 
 def get_semitone_diff(key1, key2):
     """Calculates the distance in semitones between two musical keys."""
-    notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
     try:
         p1, p2 = key1.split(), key2.split()
         if p1[1] != p2[1]:
@@ -78,10 +79,13 @@ def _resample_if_needed(y, sr, target_sr):
         return y, sr
     try:
         import librosa
+
         y = librosa.resample(y, orig_sr=sr, target_sr=target_sr)
         return y, target_sr
     except ImportError:
-        print(f"  [WARN] librosa not available for resampling {sr}->{target_sr}. Using native SR.")
+        print(
+            f"  [WARN] librosa not available for resampling {sr}->{target_sr}. Using native SR."
+        )
         return y, sr
 
 
@@ -92,32 +96,43 @@ def dynamic_warp(y, sr, native_bpm, start_target_bpm, end_target_bpm):
 
     # Try Rubber Band first
     try:
+
         def rb_stretch(data, rb_rate):
             if data.ndim == 1:
                 data = np.vstack([data, data])
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fin, \
-                 tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fout:
-                sf.write(fin.name, data.T, sr, format='WAV', subtype='PCM_16')
-                fin.close(); fout.close()
-                subprocess.run(["rubberband", "--tempo", str(rb_rate), fin.name, fout.name],
-                               check=True, capture_output=True)
-                out_y, sr_out = sf.read(fout.name, dtype='float32')
+            with tempfile.NamedTemporaryFile(
+                suffix=".wav", delete=False
+            ) as fin, tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fout:
+                sf.write(fin.name, data.T, sr, format="WAV", subtype="PCM_16")
+                fin.close()
+                fout.close()
+                subprocess.run(
+                    ["rubberband", "--tempo", str(rb_rate), fin.name, fout.name],
+                    check=True,
+                    capture_output=True,
+                )
+                out_y, sr_out = sf.read(fout.name, dtype="float32")
                 if out_y.ndim == 2:
                     out_y = out_y.T
-                os.remove(fin.name); os.remove(fout.name)
+                os.remove(fin.name)
+                os.remove(fout.name)
                 if out_y.ndim == 1:
                     out_y = np.vstack([out_y, out_y])
                 return out_y
 
         import tempfile
+
         print(f"  [RB] rate={rate:.4f} ({native_bpm:.1f} -> {avg_target_bpm:.1f})")
         return rb_stretch(y, rate)
     except (FileNotFoundError, subprocess.CalledProcessError, Exception) as e:
-        print(f"  [WARN] Rubber Band unavailable ({e}). Falling back to librosa phase vocoder.")
+        print(
+            f"  [WARN] Rubber Band unavailable ({e}). Falling back to librosa phase vocoder."
+        )
 
     # Fallback: librosa phase vocoder
     try:
         import librosa
+
         if y.ndim == 2:
             y_mono = librosa.to_mono(y)
         else:
@@ -136,7 +151,7 @@ def warp_worker(args):
     path, native_bpm, s_bpm, e_bpm, cur_key, tar_key, sync = args
     try:
         target_sr = 44100
-        y, sr = sf.read(path, dtype='float32')
+        y, sr = sf.read(path, dtype="float32")
         if y.ndim == 2:
             y = y.T  # (channels, samples)
 
@@ -148,7 +163,13 @@ def warp_worker(args):
         return y_w, sr
     except Exception as e:
         import traceback
-        monitor.log_incident("ERROR", "WarpWorker", f"Failed: {os.path.basename(path)}: {e}", traceback.format_exc())
+
+        monitor.log_incident(
+            "ERROR",
+            "WarpWorker",
+            f"Failed: {os.path.basename(path)}: {e}",
+            traceback.format_exc(),
+        )
         return None, str(e)
 
 
@@ -156,7 +177,7 @@ def analyze_track_worker(f):
     """Metadata extraction worker with fast-loading."""
     try:
         target_sr = 44100
-        y, sr = sf.read(f, dtype='float32')
+        y, sr = sf.read(f, dtype="float32")
         if y.ndim == 2:
             y = y.T
         y, sr = _resample_if_needed(y, sr, target_sr)
@@ -167,17 +188,17 @@ def analyze_track_worker(f):
         terrain = extract_spectral_terrain(y, sr)
 
         return {
-            'path': f,
-            'bpm': native_bpm,
-            'key': get_musical_key(y_mono, sr),
-            'energy': get_energy_profile(y_mono, sr),
-            'genre': genre,
-            'rationale': rationale,
-            'terrain': terrain
+            "path": f,
+            "bpm": native_bpm,
+            "key": get_musical_key(y_mono, sr),
+            "energy": get_energy_profile(y_mono, sr),
+            "genre": genre,
+            "rationale": rationale,
+            "terrain": terrain,
         }
     except Exception as e:
         print(f"[ERROR] analyze_track_worker failed for {f}: {e}")
-        return {'path': f, 'error': str(e)}
+        return {"path": f, "error": str(e)}
 
 
 def find_optimal_order(files, status_obj=None):
@@ -193,26 +214,28 @@ def find_optimal_order(files, status_obj=None):
         results.append(r)
         if status_obj:
             status_obj.get("active_tasks", {}).pop(f, None)
-            status_obj["status"] = f"Analyzing Library ({i+1}/{total})"
+            status_obj["status"] = f"Analyzing Library ({i + 1}/{total})"
             status_obj["progress"] = int(((i + 1) / total) * 50)
 
-        if 'error' not in r:
-            print(f"  [{i+1}/{total}] {os.path.basename(f)}: BPM={r['bpm']:.1f}, Key={r['key']}, Genre={r['genre']}")
+        if "error" not in r:
+            print(
+                f"  [{i + 1}/{total}] {os.path.basename(f)}: BPM={r['bpm']:.1f}, Key={r['key']}, Genre={r['genre']}"
+            )
         else:
-            print(f"  [{i+1}/{total}] {os.path.basename(f)}: ERROR - {r['error']}")
+            print(f"  [{i + 1}/{total}] {os.path.basename(f)}: ERROR - {r['error']}")
 
-    meta = [r for r in results if 'error' not in r]
+    meta = [r for r in results if "error" not in r]
     if not meta:
         return files, None
 
     def score_transition(t1, t2):
-        s = 50 if is_harmonically_compatible(t1['key'], t2['key']) else 0
-        if abs(get_semitone_diff(t1['key'], t2['key'])) <= 2:
+        s = 50 if is_harmonically_compatible(t1["key"], t2["key"]) else 0
+        if abs(get_semitone_diff(t1["key"], t2["key"])) <= 2:
             s += 25
-        e_diff = t2['energy'] - t1['energy']
+        e_diff = t2["energy"] - t1["energy"]
         s += 20 if e_diff > 0 else 0
         s -= abs(e_diff) * 100
-        if t1['genre'] == t2['genre']:
+        if t1["genre"] == t2["genre"]:
             s += 30
         return s
 
@@ -222,7 +245,7 @@ def find_optimal_order(files, status_obj=None):
         order.append(meta.pop(best_idx))
 
     def score_set(o):
-        return sum(score_transition(o[i], o[i+1]) for i in range(len(o)-1))
+        return sum(score_transition(o[i], o[i + 1]) for i in range(len(o) - 1))
 
     best_o, best_s = list(order), score_set(order)
     temp = config.SA_INITIAL_TEMP
@@ -233,7 +256,9 @@ def find_optimal_order(files, status_obj=None):
         i, j = random.sample(range(1, len(new_o)), 2)
         new_o[i], new_o[j] = new_o[j], new_o[i]
         new_s = score_set(new_o)
-        if new_s > best_s or random.random() < np.exp(min(700, (new_s - best_s)/temp)):
+        if new_s > best_s or random.random() < np.exp(
+            min(700, (new_s - best_s) / temp)
+        ):
             best_o, best_s = new_o, new_s
         temp = config.SA_INITIAL_TEMP / np.log(1 + _ + 1)
 
@@ -241,7 +266,7 @@ def find_optimal_order(files, status_obj=None):
         status_obj["status"] = "Optimizing track order..."
         status_obj["progress"] = 50
 
-    return [x['path'] for x in best_o], best_o
+    return [x["path"] for x in best_o], best_o
 
 
 def compile_master_set(args, status_obj=None):
@@ -249,7 +274,7 @@ def compile_master_set(args, status_obj=None):
     folder = args.input
 
     # Modular Source Discovery
-    source_type = getattr(args, 'source_plugin', 'local_folder')
+    source_type = getattr(args, "source_plugin", "local_folder")
     source_cls = PluginRegistry.get_sources().get(source_type)
 
     # Modular Tool Loading
@@ -261,7 +286,9 @@ def compile_master_set(args, status_obj=None):
         all_files = [os.path.join(folder, f) for f in status_obj["playlist"]]
     elif source_cls:
         source = source_cls()
-        all_files = source.get_tracks(folder=folder, extensions=config.SUPPORTED_EXTENSIONS)
+        all_files = source.get_tracks(
+            folder=folder, extensions=config.SUPPORTED_EXTENSIONS
+        )
     else:
         all_files = []
 
@@ -289,19 +316,35 @@ def compile_master_set(args, status_obj=None):
         status_obj["status"] = f"Warping {num_tracks} tracks"
     wait_for_health(status_obj)
 
-    start_bpm = status_obj.get("live_params", {}).get("target_bpm", args.bpm) if status_obj else args.bpm
-    end_bpm = (args.end_bpm or start_bpm)
+    start_bpm = (
+        status_obj.get("live_params", {}).get("target_bpm", args.bpm)
+        if status_obj
+        else args.bpm
+    )
+    end_bpm = args.end_bpm or start_bpm
 
     warp_tasks = []
     for i in range(num_tracks):
         t_s_bpm = start_bpm + (end_bpm - start_bpm) * (i / num_tracks)
         t_e_bpm = start_bpm + (end_bpm - start_bpm) * ((i + 1) / num_tracks)
-        tar_key = meta_list[i-1]['key'] if i > 0 else None
-        warp_tasks.append((all_files[i], meta_list[i]['bpm'], t_s_bpm, t_e_bpm, meta_list[i]['key'], tar_key, True))
+        tar_key = meta_list[i - 1]["key"] if i > 0 else None
+        warp_tasks.append(
+            (
+                all_files[i],
+                meta_list[i]["bpm"],
+                t_s_bpm,
+                t_e_bpm,
+                meta_list[i]["key"],
+                tar_key,
+                True,
+            )
+        )
 
     warped_results = [None] * num_tracks
     executor = cluster.get_executor()
-    futures = {executor.submit(warp_worker, task): idx for idx, task in enumerate(warp_tasks)}
+    futures = {
+        executor.submit(warp_worker, task): idx for idx, task in enumerate(warp_tasks)
+    }
 
     for future in as_completed(futures):
         idx = futures[future]
@@ -314,7 +357,9 @@ def compile_master_set(args, status_obj=None):
         # Fault Tolerance: Local Fallback
         if y_w is None:
             monitor.record_retry()
-            monitor.log_incident("WARN", "CoreEngine", f"Cluster task {idx} failed. Retrying locally...")
+            monitor.log_incident(
+                "WARN", "CoreEngine", f"Cluster task {idx} failed. Retrying locally..."
+            )
             y_w, sr = warp_worker(warp_tasks[idx])
             if y_w is not None:
                 monitor.record_success()
@@ -337,17 +382,25 @@ def compile_master_set(args, status_obj=None):
 
     for i in range(num_tracks):
         # Continuous mode: dynamic queue replenishment
-        if status_obj and status_obj.get('playlist') and i >= len(warped_results):
+        if status_obj and status_obj.get("playlist") and i >= len(warped_results):
             try:
-                y_raw, sr_orig = sf.read(all_files[i], dtype='float32')
+                y_raw, sr_orig = sf.read(all_files[i], dtype="float32")
                 if y_raw.ndim == 2:
                     y_raw = y_raw.T
                 nbpm, _, _ = get_native_bpm(y_raw, sr_orig)
-                mkey = get_musical_key(y_raw if y_raw.ndim == 1 else np.mean(y_raw, axis=0), sr_orig)
-                gnr, _ = get_genre_archetype(y_raw if y_raw.ndim == 1 else np.mean(y_raw, axis=0), sr_orig, bpm=nbpm)
-                meta_list.append({'bpm': nbpm, 'key': mkey, 'genre': gnr})
-                tar_key = meta_list[i-1]['key'] if i > 0 else None
-                y_w, sr = warp_worker((all_files[i], nbpm, start_bpm, start_bpm, mkey, tar_key, True))
+                mkey = get_musical_key(
+                    y_raw if y_raw.ndim == 1 else np.mean(y_raw, axis=0), sr_orig
+                )
+                gnr, _ = get_genre_archetype(
+                    y_raw if y_raw.ndim == 1 else np.mean(y_raw, axis=0),
+                    sr_orig,
+                    bpm=nbpm,
+                )
+                meta_list.append({"bpm": nbpm, "key": mkey, "genre": gnr})
+                tar_key = meta_list[i - 1]["key"] if i > 0 else None
+                y_w, sr = warp_worker(
+                    (all_files[i], nbpm, start_bpm, start_bpm, mkey, tar_key, True)
+                )
                 warped_results.append((y_w, sr))
             except Exception as e:
                 print(f"[ERROR] Dynamic warp failed for {all_files[i]}: {e}")
@@ -361,32 +414,46 @@ def compile_master_set(args, status_obj=None):
         # In-Memory Conversion
         nxt = ndarray_to_pydub(y_w, sr)
         nxt = trim_silence(nxt)
-        processed_tracks.append((nxt, y_w, sr, None))  # beats added after analyze_geometry
+        processed_tracks.append(
+            (nxt, y_w, sr, None)
+        )  # beats added after analyze_geometry
 
         if master is None:
             master = nxt
             # Anchor the global grid and store first track's beats
-            master_beats, _, master_grid_offset, _ = analyze_geometry(nxt, sr, start_bpm, args.beats_per_bar, args.transition_bars)
+            master_beats, _, master_grid_offset, _ = analyze_geometry(
+                nxt, sr, start_bpm, args.beats_per_bar, args.transition_bars
+            )
             # Update first track's beats in processed_tracks
             if len(processed_tracks) > 0:
                 pt = processed_tracks[0]
                 processed_tracks[0] = (pt[0], pt[1], pt[2], master_beats)
-            track_meta = {'timestamp': "00:00:00", 'file': os.path.basename(all_files[i]),
-                          'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
-                          'genre': meta_list[i]['genre'], 'rationale': meta_list[i].get('rationale', ''),
-                          'terrain': meta_list[i].get('terrain', []), 'start_ms': 0}
+            track_meta = {
+                "timestamp": "00:00:00",
+                "file": os.path.basename(all_files[i]),
+                "key": f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
+                "genre": meta_list[i]["genre"],
+                "rationale": meta_list[i].get("rationale", ""),
+                "terrain": meta_list[i].get("terrain", []),
+                "start_ms": 0,
+            }
             tracklist.append(track_meta)
             current_time_ms = len(master)
             continue
 
-        prev_nxt, prev_y_w, _, _ = processed_tracks[i-1]
+        prev_nxt, prev_y_w, _, _ = processed_tracks[i - 1]
 
         # Poll live BPM
-        current_target_bpm = status_obj.get("live_params", {}).get("target_bpm", start_bpm) if status_obj else start_bpm
+        current_target_bpm = (
+            status_obj.get("live_params", {}).get("target_bpm", start_bpm)
+            if status_obj
+            else start_bpm
+        )
         t_s_bpm = current_target_bpm + (end_bpm - current_target_bpm) * (i / num_tracks)
 
         beats, theoretical_ms_trans, first_beat_ms, last_beat_ms = analyze_geometry(
-            nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars)
+            nxt, sr, t_s_bpm, args.beats_per_bar, args.transition_bars
+        )
         # Update processed_tracks with beats for this track
         if i < len(processed_tracks):
             pt = processed_tracks[i]
@@ -397,7 +464,11 @@ def compile_master_set(args, status_obj=None):
         ms_per_bar = ms_per_beat * args.beats_per_bar
         grid_size = ms_per_bar * 8
 
-        fixed_p = beats[min(args.transition_bars * args.beats_per_bar, len(beats)-1)] if len(beats) > 0 else theoretical_ms_trans
+        fixed_p = (
+            beats[min(args.transition_bars * args.beats_per_bar, len(beats) - 1)]
+            if len(beats) > 0
+            else theoretical_ms_trans
+        )
         ideal_p = fixed_p
         if ph.any():
             cl = ph[np.argmin(np.abs(ph - fixed_p))]
@@ -415,34 +486,34 @@ def compile_master_set(args, status_obj=None):
         # Beat-Aligned Phase Alignment
         # Instead of a theoretical grid, align the incoming track's first beat
         # to the nearest actual beat in the outgoing track.
-        current_kick_pos = (current_time_ms - ms_trans + first_beat_ms)
-        
+        current_kick_pos = current_time_ms - ms_trans + first_beat_ms
+
         # Get outgoing track's beat positions for alignment
         prev_beats = None
-        if i > 0 and i-1 < len(processed_tracks):
-            pt = processed_tracks[i-1]
+        if i > 0 and i - 1 < len(processed_tracks):
+            pt = processed_tracks[i - 1]
             if len(pt) > 3 and pt[3] is not None:
                 prev_beats = pt[3]
-        
+
         if prev_beats is not None and len(prev_beats) > 0:
             # Convert prev track beats to master stream positions
             # The prev track starts at track_start_ms of the previous transition
             # For the first transition (i=1), the prev track starts at 0
             prev_track_start = 0
             for tm in tracklist:
-                if os.path.basename(all_files[i-1]) in tm.get('file', ''):
-                    prev_track_start = tm.get('start_ms', 0)
+                if os.path.basename(all_files[i - 1]) in tm.get("file", ""):
+                    prev_track_start = tm.get("start_ms", 0)
                     break
-            
+
             # Outgoing track's beats in master time
             master_beats = prev_beats + prev_track_start
-            
+
             # Find the nearest beat to where the incoming first beat lands
             if len(master_beats) > 0:
                 nearest_idx = np.argmin(np.abs(master_beats - current_kick_pos))
                 nearest_beat = int(master_beats[nearest_idx])
                 phase_error = nearest_beat - current_kick_pos
-                
+
                 # Only correct if within 1 bar (don't shift the transition massively)
                 max_correction = int(ms_per_bar)
                 if abs(phase_error) < max_correction:
@@ -461,14 +532,19 @@ def compile_master_set(args, status_obj=None):
         if ms_trans > 0 and ms_trans < len(master):
             m_slice = pydub_to_ndarray(master[-ms_trans:])
             n_slice = pydub_to_ndarray(nxt[:ms_trans])
-            
+
             # Try kick-peak-based sync first
             sync_nudge = 0
             try:
-                from scipy.signal import butter as _sb, lfilter as _slf, find_peaks as _sfp
-                _sb_b, _sb_a = _sb(2, 80.0 / (0.5 * sr), btype='low')
+                from scipy.signal import (
+                    butter as _sb,
+                    lfilter as _slf,
+                    find_peaks as _sfp,
+                )
+
+                _sb_b, _sb_a = _sb(2, 80.0 / (0.5 * sr), btype="low")
                 _min_dist = int(0.6 * 60 / t_s_bpm * sr)
-                
+
                 # Detect peaks in outgoing
                 _m_mono = np.mean(m_slice, axis=0) if m_slice.ndim == 2 else m_slice
                 _m_kick = np.abs(_slf(_sb_b, _sb_a, _m_mono))
@@ -478,7 +554,7 @@ def compile_master_set(args, status_obj=None):
                     _m_peaks, _ = _sfp(_m_kick_n, height=0.15, distance=_min_dist)
                 else:
                     _m_peaks = np.array([])
-                
+
                 # Detect peaks in incoming
                 _n_mono = np.mean(n_slice, axis=0) if n_slice.ndim == 2 else n_slice
                 _n_kick = np.abs(_slf(_sb_b, _sb_a, _n_mono))
@@ -488,7 +564,7 @@ def compile_master_set(args, status_obj=None):
                     _n_peaks, _ = _sfp(_n_kick_n, height=0.15, distance=_min_dist)
                 else:
                     _n_peaks = np.array([])
-                
+
                 if len(_m_peaks) >= 3 and len(_n_peaks) >= 3:
                     # Measure the offset between the two sets of peaks
                     _offsets = []
@@ -498,30 +574,36 @@ def compile_master_set(args, status_obj=None):
                         _nearest_idx = np.argmin(_dists)
                         if _dists[_nearest_idx] < _max_dist:
                             _offsets.append(int(_m_peaks[_nearest_idx]) - int(_np))
-                    
+
                     if len(_offsets) >= 3:
                         sync_nudge = int(np.median(_offsets) * 1000 / sr)
-                        print(f" [KICK-SYNC] peaks: out={len(_m_peaks)} in={len(_n_peaks)} offsets={len(_offsets)} nudge={sync_nudge}ms")
-                
+                        print(
+                            f" [KICK-SYNC] peaks: out={len(_m_peaks)} in={len(_n_peaks)} offsets={len(_offsets)} nudge={sync_nudge}ms"
+                        )
+
                 if sync_nudge == 0:
                     # Fallback: cross-correlation based sync
                     sync_nudge = find_sync_offset(m_slice, n_slice, sr, t_s_bpm)
             except Exception as _sync_err:
                 sync_nudge = find_sync_offset(m_slice, n_slice, sr, t_s_bpm)
-            
+
             max_nudge = int(ms_per_beat * 2.0)
             sync_nudge = max(-max_nudge, min(max_nudge, sync_nudge))
-            ms_trans -= sync_nudge
+            ms_trans -= sync_nudge  # incoming early -> delay it (decrease ms_trans)
             print(f" [SYNC] Nudge: {sync_nudge}ms")
-
 
         ms_trans = min(ms_trans, len(master))
         track_start_ms = len(master) - ms_trans
 
-        track_meta = {'timestamp': ms_to_timestamp(track_start_ms), 'file': os.path.basename(all_files[i]),
-                      'key': f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
-                      'genre': meta_list[i]['genre'], 'rationale': meta_list[i].get('rationale', ''),
-                      'terrain': meta_list[i].get('terrain', []), 'start_ms': track_start_ms}
+        track_meta = {
+            "timestamp": ms_to_timestamp(track_start_ms),
+            "file": os.path.basename(all_files[i]),
+            "key": f"{meta_list[i]['key']} ({get_camelot_key(meta_list[i]['key'])})",
+            "genre": meta_list[i]["genre"],
+            "rationale": meta_list[i].get("rationale", ""),
+            "terrain": meta_list[i].get("terrain", []),
+            "start_ms": track_start_ms,
+        }
         tracklist.append(track_meta)
 
         for tool in active_tools:
@@ -529,7 +611,7 @@ def compile_master_set(args, status_obj=None):
 
         if status_obj:
             status_obj["tracklist"] = tracklist
-            status_obj["progress"] = 75 + int((i / max(num_tracks-1, 1)) * 25)
+            status_obj["progress"] = 75 + int((i / max(num_tracks - 1, 1)) * 25)
 
         # Two-Phase Overlap with Continuous Volume Curves
         pre_fade_ms = max(0, ms_trans - crossfade_ms)
@@ -563,26 +645,30 @@ def compile_master_set(args, status_obj=None):
 
             # Outgoing: full volume during pre-fade, then crossfade out
             out_curve = np.ones(total_samples)
-            out_curve[pf_samples:] = np.cos(np.pi * cf_x ** 0.8 / 2)
+            out_curve[pf_samples:] = np.cos(np.pi * cf_x**0.8 / 2)
 
             # Incoming: gentle ramp during pre-fade (0 -> 25%), then crossfade in (25% -> 100%)
             in_curve = np.zeros(total_samples)
             prefade_vol = 0.25
-            in_curve[:pf_samples] = prefade_vol * (pf_x ** 0.7)  # gentle power ramp
+            in_curve[:pf_samples] = prefade_vol * (pf_x**0.7)  # gentle power ramp
             # Crossfade portion: scale sin curve to go from prefade_vol to 1.0
-            cf_in_raw = np.sin(np.pi * cf_x ** 1.2 / 2)
+            cf_in_raw = np.sin(np.pi * cf_x**1.2 / 2)
             in_curve[pf_samples:] = prefade_vol + (1.0 - prefade_vol) * cf_in_raw
         else:
             # No pre-fade: standard crossfade curves over entire overlap
             x = np.linspace(0, 1, total_samples)
-            out_curve = np.cos(np.pi * x ** 0.8 / 2)
-            in_curve = np.sin(np.pi * x ** 1.2 / 2)
+            out_curve = np.cos(np.pi * x**0.8 / 2)
+            in_curve = np.sin(np.pi * x**1.2 / 2)
 
         # Apply archetype (bass swap / EQ) to the crossfade portion only
-        mode = getattr(args, 'archetype', 'auto')
-        if mode == 'auto':
-            mode = 'progressive'
-        dsp_kwargs = {'lowpass': args.lowpass, 'highpass': args.highpass, 'ideal_p': ideal_p}
+        mode = getattr(args, "archetype", "auto")
+        if mode == "auto":
+            mode = "progressive"
+        dsp_kwargs = {
+            "lowpass": args.lowpass,
+            "highpass": args.highpass,
+            "ideal_p": ideal_p,
+        }
 
         # DJ-style bass management with no filter transients
         # Process the ENTIRE overlap through crossover filters (avoids
@@ -598,7 +684,7 @@ def compile_master_set(args, status_obj=None):
         # When gain = 1.0: output = audio (exact, no artifacts)
         # When gain = 0.0: output = audio - bass (highpass effect)
         # This eliminates ALL phase/timbre issues at boundaries.
-        b_lo, a_lo = butter(2, 150.0 / (0.5 * sr), btype='low')
+        b_lo, a_lo = butter(2, 150.0 / (0.5 * sr), btype="low")
 
         # Extract bass component from each track
         def _get_bass(audio):
@@ -617,7 +703,9 @@ def compile_master_set(args, status_obj=None):
         # Build bass gain curves aligned with the crossfade region
         # During pre-fade: outgoing bass at 100%, incoming bass at 0%
         # During crossfade: bass swap (outgoing fades out, incoming fades in)
-        pf_s = min(int(pre_fade_ms * sr / 1000), total_samples) if pre_fade_ms > 0 else 0
+        pf_s = (
+            min(int(pre_fade_ms * sr / 1000), total_samples) if pre_fade_ms > 0 else 0
+        )
         cf_len = total_samples - pf_s
 
         # Outgoing bass: full during pre-fade, then swap curve during crossfade
@@ -642,38 +730,36 @@ def compile_master_set(args, status_obj=None):
             n_bass_curve[pf_s:] = n_cf_curve
 
         # Beat-synced bass ducking to eliminate galloping/flamming
-        # When both tracks' kicks are audible, duck one track's bass
-        # when the other track's kick hits. This creates a "sidechain"
-        # effect that prevents the two kicks from flamming.
-        duck_ms = 25       # duck duration (ms) - just the kick attack
-        duck_depth = 0.6   # how much to reduce the other track's bass
+        # Detect ACTUAL kick peaks in the overlap slices (not theoretical
+        # beat positions, which are invalidated by sync nudge adjustments).
+        duck_ms = 25  # duck duration (ms) - just the kick attack
+        duck_depth = 0.6  # how much to reduce the other track's bass
 
-        # Get beat positions within the overlap for both tracks
-        # Incoming track beats (already in ms from track start)
-        n_beats_in_overlap = beats[beats < ms_trans] if len(beats) > 0 else np.array([])
-        # Outgoing track beats: need to find which fall in the overlap
-        if prev_beats is not None and len(prev_beats) > 0:
-            # The outgoing track's duration in ms
-            pt = processed_tracks[i-1] if i-1 < len(processed_tracks) else None
-            if pt and pt[1] is not None:
-                prev_dur_ms = int(pt[1].shape[-1] / sr * 1000) if pt[1].ndim > 0 else 0
-            else:
-                prev_dur_ms = ms_trans  # fallback
-            overlap_start_in_prev = max(0, prev_dur_ms - ms_trans)
-            m_beats_in_overlap = prev_beats[prev_beats >= overlap_start_in_prev] - overlap_start_in_prev
-        else:
-            m_beats_in_overlap = np.array([])
+        def _detect_kick_peaks_in_overlap(audio_overlap, sr, bpm):
+            """Detect kick drum peaks in an overlap audio slice using 150Hz lowpass."""
+            from scipy.signal import butter as _b, lfilter as _lf, find_peaks as _fp
 
-        # Generate duck windows for each beat
-        # At each outgoing beat, duck the incoming track's bass
-        # At each incoming beat, duck the outgoing track's bass
-        def _make_duck_curve(beat_positions_ms, total_samples, sr, duck_ms, depth):
-            """Create a gain curve with dips at each beat position."""
+            mono = (
+                np.mean(audio_overlap, axis=0)
+                if audio_overlap.ndim == 2
+                else audio_overlap
+            )
+            b_b, a_b = _b(2, 150.0 / (0.5 * sr), btype="low")
+            kick = np.abs(_lf(b_b, a_b, mono))
+            kmax = np.max(kick)
+            if kmax < 1e-6:
+                return np.array([])
+            kick = kick / kmax
+            dist = int(0.5 * 60 / bpm * sr)
+            peaks, _ = _fp(kick, height=0.15, distance=dist)
+            return peaks
+
+        def _make_duck_curve(peak_positions, total_samples, sr, duck_ms, depth):
+            """Create a gain curve with dips at each peak position."""
             curve = np.ones(total_samples)
             duck_samples = int(duck_ms * sr / 1000)
-            for bt_ms in beat_positions_ms:
-                center = int(bt_ms * sr / 1000)
-                # Raised cosine dip centered on the beat
+            for center in peak_positions:
+                center = int(center)
                 start = max(0, center - duck_samples // 2)
                 end = min(total_samples, center + duck_samples // 2)
                 if end > start:
@@ -682,19 +768,28 @@ def compile_master_set(args, status_obj=None):
                     curve[start:end] = np.minimum(curve[start:end], dip)
             return curve
 
-        # Create duck curves for each track
-        m_duck = _make_duck_curve(n_beats_in_overlap, total_samples, sr, duck_ms, duck_depth)
-        n_duck = _make_duck_curve(m_beats_in_overlap, total_samples, sr, duck_ms, duck_depth)
+        # Detect actual kick peaks in both overlap slices
+        m_kick_peaks = _detect_kick_peaks_in_overlap(m_overlap, sr, t_s_bpm)
+        n_kick_peaks = _detect_kick_peaks_in_overlap(n_intro_full, sr, t_s_bpm)
 
-        # Only apply ducking in the crossfade region (not pre-fade)
+        pf_s = (
+            min(int(pre_fade_ms * sr / 1000), total_samples) if pre_fade_ms > 0 else 0
+        )
+
+        # Duck each track when the OTHER track's kick hits
+        m_duck = _make_duck_curve(
+            n_kick_peaks[n_kick_peaks >= pf_s], total_samples, sr, duck_ms, duck_depth
+        )
+        n_duck = _make_duck_curve(
+            m_kick_peaks[m_kick_peaks >= pf_s], total_samples, sr, duck_ms, duck_depth
+        )
+
         if pf_s > 0:
-            m_duck[:pf_s] = 1.0  # no ducking during pre-fade
-            n_duck[:pf_s] = 1.0  # no ducking during pre-fade
+            m_duck[:pf_s] = 1.0
+            n_duck[:pf_s] = 1.0
 
-        # Scale ducking by how much the OTHER track's bass is present
-        # When outgoing bass is high, duck the incoming more (and vice versa)
-        m_bass_curve *= n_duck   # outgoing bass is ducked when incoming kick hits
-        n_bass_curve *= m_duck   # incoming bass is ducked when outgoing kick hits
+        m_bass_curve *= n_duck
+        n_bass_curve *= m_duck
 
         # Recombine using subtraction: audio - bass * (1 - gain)
         # This is sample-accurate when gain = 1.0 (no phase artifacts)
@@ -713,9 +808,9 @@ def compile_master_set(args, status_obj=None):
                 if proc_len < total_samples:
                     pad = total_samples - proc_len
                     if arr.ndim == 2:
-                        arr = np.pad(arr, ((0,0),(0,pad)))
+                        arr = np.pad(arr, ((0, 0), (0, pad)))
                     else:
-                        arr = np.pad(arr, (0,pad))
+                        arr = np.pad(arr, (0, pad))
                 else:
                     if arr.ndim == 2:
                         arr = arr[:, :total_samples]
@@ -726,10 +821,11 @@ def compile_master_set(args, status_obj=None):
             else:
                 n_proc = arr
 
-
         # Apply volume curves and sum into single continuous mix
         if m_proc.ndim == 2:
-            mix_bus_raw = m_proc * out_curve[np.newaxis, :] + n_proc * in_curve[np.newaxis, :]
+            mix_bus_raw = (
+                m_proc * out_curve[np.newaxis, :] + n_proc * in_curve[np.newaxis, :]
+            )
         else:
             mix_bus_raw = m_proc * out_curve + n_proc * in_curve
         mix_bus_raw = apply_limiter(mix_bus_raw)
@@ -743,9 +839,11 @@ def compile_master_set(args, status_obj=None):
         if actual_samples < expected_samples:
             pad_len = expected_samples - actual_samples
             if mix_bus_raw.ndim == 2:
-                mix_bus_raw = np.pad(mix_bus_raw, ((0,0),(0,pad_len)), mode="constant")
+                mix_bus_raw = np.pad(
+                    mix_bus_raw, ((0, 0), (0, pad_len)), mode="constant"
+                )
             else:
-                mix_bus_raw = np.pad(mix_bus_raw, (0,pad_len), mode="constant")
+                mix_bus_raw = np.pad(mix_bus_raw, (0, pad_len), mode="constant")
         elif actual_samples > expected_samples:
             if mix_bus_raw.ndim == 2:
                 mix_bus_raw = mix_bus_raw[:, :expected_samples]
@@ -759,15 +857,19 @@ def compile_master_set(args, status_obj=None):
         current_time_ms = len(master)
 
         # Memory management for continuous mode
-        if status_obj and status_obj.get('live_params', {}).get('continuous_mode') and i > 3:
-            if i-3 < len(warped_results):
-                warped_results[i-3] = None
-            if i-3 < len(processed_tracks):
-                processed_tracks[i-3] = None
+        if (
+            status_obj
+            and status_obj.get("live_params", {}).get("continuous_mode")
+            and i > 3
+        ):
+            if i - 3 < len(warped_results):
+                warped_results[i - 3] = None
+            if i - 3 < len(processed_tracks):
+                processed_tracks[i - 3] = None
 
     # Export
     if master:
-        output_type = getattr(args, 'output_plugin', 'local_file')
+        output_type = getattr(args, "output_plugin", "local_file")
         output_cls = PluginRegistry.get_outputs().get(output_type)
 
         if output_cls:
@@ -777,10 +879,13 @@ def compile_master_set(args, status_obj=None):
             try:
                 sink = output_cls()
                 sink.export(
-                    master, tracklist,
-                    output=args.output, version=__version__,
-                    all_files=all_files, meta_list=meta_list,
-                    processed_tracks=processed_tracks
+                    master,
+                    tracklist,
+                    output=args.output,
+                    version=__version__,
+                    all_files=all_files,
+                    meta_list=meta_list,
+                    processed_tracks=processed_tracks,
                 )
                 if status_obj:
                     status_obj["status"] = "Complete"
@@ -790,6 +895,7 @@ def compile_master_set(args, status_obj=None):
             except Exception as e:
                 print(f"[ERROR] Output plugin failed: {e}")
                 import traceback
+
                 traceback.print_exc()
                 if status_obj:
                     status_obj["status"] = f"Error: Export failed - {e}"
@@ -799,31 +905,35 @@ def compile_master_set(args, status_obj=None):
                 status_obj["status"] = "Exporting FLAC"
                 status_obj["progress"] = 98
             try:
-                print(f"[*] Exporting {len(master)/1000/60:.1f} min mix to {args.output}...")
+                print(
+                    f"[*] Exporting {len(master) / 1000 / 60:.1f} min mix to {args.output}..."
+                )
                 master.export(args.output, format="flac")
-                print(f"[*] Export complete!")
+                print("[*] Export complete!")
                 if status_obj:
                     status_obj["status"] = "Complete"
                     status_obj["progress"] = 100
                 tl_path = os.path.splitext(args.output)[0] + "_tracklist.txt"
                 with open(tl_path, "w") as f:
-                    f.write(f"Auto DJ v{__version__} Master Tracklist\n{'='*40}\n")
+                    f.write(f"Auto DJ v{__version__} Master Tracklist\n{'=' * 40}\n")
                     for item in tracklist:
-                        f.write(f"[{item['timestamp']}] {item['file']} ({item['key']}) [{item['genre']}]\n")
+                        f.write(
+                            f"[{item['timestamp']}] {item['file']} ({item['key']}) [{item['genre']}]\n"
+                        )
             except Exception as e:
                 print(f"[ERROR] Direct export failed: {e}")
                 if status_obj:
                     status_obj["status"] = f"Error: Export failed - {e}"
 
 
-def _dj_crossfade(audio_array, fade_type='in'):
+def _dj_crossfade(audio_array, fade_type="in"):
     """Equal-power crossfade designed for DJ mixer style transitions.
-    
+
     This works WITH the bass swap in _apply_bass_swap_transition:
     - The bass swap handles the low-frequency handoff (kick drum exchange)
     - This crossfade handles the mid/high volume balance
     - Together they create a smooth transition like a real DJ mixer
-    
+
     The curves are asymmetric to match DJ practice:
     - Fade OUT (outro): gentle hold, then smooth release. The outro stays
       audible until late in the transition because the bass swap already
@@ -833,18 +943,18 @@ def _dj_crossfade(audio_array, fade_type='in'):
     """
     n = audio_array.shape[1] if audio_array.ndim == 2 else len(audio_array)
     x = np.linspace(0, 1, n)
-    
-    if fade_type == 'out':
+
+    if fade_type == "out":
         # Outro: equal-power fade with slight hold
         # cos(pi*x/2) is the standard equal-power fade-out
         # The slight x^0.8 exponent keeps it louder a bit longer
-        curve = np.cos(np.pi * x ** 0.8 / 2)
+        curve = np.cos(np.pi * x**0.8 / 2)
     else:
         # Intro: equal-power fade-in
         # sin(pi*x/2) is the standard equal-power fade-in
         # The slight x^1.2 exponent makes it come in a touch gentler
-        curve = np.sin(np.pi * x ** 1.2 / 2)
-    
+        curve = np.sin(np.pi * x**1.2 / 2)
+
     if audio_array.ndim == 2:
         return audio_array * curve[np.newaxis, :]
     return audio_array * curve
@@ -860,14 +970,19 @@ def transition_render_worker(args):
         else:
             # Fallback: use the bass swap transition (same as progressive)
             from .dsp import _apply_bass_swap_transition
+
             f_m_raw, f_n_raw = _apply_bass_swap_transition(outro_raw, intro_raw, sr)
 
         # Apply gentle volume crossfade (complements EQ swap in DualFilterSweep)
-        f_m_faded = _dj_crossfade(f_m_raw, fade_type='out')
-        f_n_faded = _dj_crossfade(f_n_raw, fade_type='in')
+        f_m_faded = _dj_crossfade(f_m_raw, fade_type="out")
+        f_n_faded = _dj_crossfade(f_n_raw, fade_type="in")
 
         # Mix-Bus Summation
-        min_len = min(f_m_faded.shape[1], f_n_faded.shape[1]) if f_m_faded.ndim == 2 else min(len(f_m_faded), len(f_n_faded))
+        min_len = (
+            min(f_m_faded.shape[1], f_n_faded.shape[1])
+            if f_m_faded.ndim == 2
+            else min(len(f_m_faded), len(f_n_faded))
+        )
         if f_m_faded.ndim == 2:
             summed = f_m_faded[:, :min_len] + f_n_faded[:, :min_len]
         else:
@@ -877,6 +992,7 @@ def transition_render_worker(args):
         return summed, sr
     except Exception as e:
         import traceback
+
         print(f"[ERROR] transition_render_worker failed: {e}")
         traceback.print_exc()
         return None, str(e)
@@ -892,26 +1008,35 @@ def ms_to_timestamp(ms):
 @PluginRegistry.register_tool
 class SmartReplenishTool(ToolPlugin):
     """Autonomous queue replenishment tool."""
+
     name = "smart_replenish"
     display_name = "Smart Replenish"
-    description = "Automatically adds new tracks to the queue based on harmonic compatibility."
+    description = (
+        "Automatically adds new tracks to the queue based on harmonic compatibility."
+    )
 
     def on_track_start(self, track_meta, status_obj=None, **kwargs):
-        if not status_obj or not status_obj.get('live_params', {}).get('continuous_mode'):
+        if not status_obj or not status_obj.get("live_params", {}).get(
+            "continuous_mode"
+        ):
             return
-        playlist = status_obj.get('playlist', [])
-        tracklist = status_obj.get('tracklist', [])
+        playlist = status_obj.get("playlist", [])
+        tracklist = status_obj.get("tracklist", [])
         if len(playlist) < 3:
-            source_name = status_obj.get('active_source', 'local_folder')
+            source_name = status_obj.get("active_source", "local_folder")
             source_cls = PluginRegistry.get_sources().get(source_name)
             if not source_cls:
                 return
             source = source_cls()
-            all_tracks = source.get_tracks(folder=status_obj.get('input_folder'))
-            already_seen = set(t['file'] for t in tracklist) | set(playlist)
-            candidates = [t for t in all_tracks if os.path.basename(t) not in already_seen and t not in already_seen]
+            all_tracks = source.get_tracks(folder=status_obj.get("input_folder"))
+            already_seen = set(t["file"] for t in tracklist) | set(playlist)
+            candidates = [
+                t
+                for t in all_tracks
+                if os.path.basename(t) not in already_seen and t not in already_seen
+            ]
             if not candidates:
                 return
             target = random.choice(candidates)
-            status_obj['playlist'].append(os.path.basename(target))
+            status_obj["playlist"].append(os.path.basename(target))
             print(f"[*] Smart Replenish: Added {os.path.basename(target)} to queue.")
