@@ -7,13 +7,12 @@
 - [x] **WebGL Terrain Viewer**: Implement 3D visualizer in dashboard (7.6.0).
 
 ## 🛠 Improvements & Refactoring
-- [x] **Logarithmic SA Cooling**: Implement a more robust cooling schedule for large sets (>30 tracks).
-- [x] **Mastering True-Peak Limiter**: Upgrade the simple hard limiter to a true-peak look-ahead limiter in \`dsp.py\`.
+- [ ] **DSP Performance**: Benchmark and optimize 10th-order Butterworth implementation.
+- [ ] **Distributed SA**: Implement multi-node Simulated Annealing (True Quantum).
 
 ## 📚 Documentation
-- [x] **Operational Directive Consolidation**.
-- [x] **Universal Version Sync**.
-- [x] **Code Commentary Audit**: Ensure every function in \`dsp.py\` and \`core.py\` has deep "why/how" comments.
+- [ ] Create `Documentation/SCHEDULING_SPEC.md` for advanced event orchestration.
+- [ ] Update `MANUAL.md` with Preference Bias instructions.
 
 ---
 *Keep on goin'! Don't stop the party!*

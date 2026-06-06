@@ -155,12 +155,12 @@
 
 ## [5.2.0] - 2024-05-20
 ### Added
-- **True-Peak Limiter**: Integrated a soft-knee look-ahead limiter into the mastering chain in \`dsp.py\`.
+- **True-Peak Limiter**: Integrated a soft-knee look-ahead limiter into the mastering chain in `dsp.py`.
 
 ## [5.1.0] - 2024-05-20
 ### Added
-- **Universal Version Synchronization**: Established \`VERSION.md\` as the single source of truth.
-- **Directive Consolidation**: Unified all project instructions into \`GLOBAL_LLM_DIRECTIVE.md\`.
+- **Universal Version Synchronization**: Established `VERSION.md` as the single source of truth.
+- **Directive Consolidation**: Unified all project instructions into `GLOBAL_LLM_DIRECTIVE.md`.
 
 ## [5.0.0] - 2024-05-19
 ### Added
