@@ -293,6 +293,49 @@ def find_optimal_order(files, status_obj=None):
     return [x["path"] for x in best_o], best_o
 
 
+def ms_to_timestamp(ms):
+    s = int((ms / 1000) % 60)
+    m = int((ms / (1000 * 60)) % 60)
+    h = int((ms / (1000 * 60 * 60)) % 24)
+    return f"{h:02d}:{m:02d}:{s:02d}"
+
+    @PluginRegistry.register_tool
+    class SmartReplenishTool(ToolPlugin):
+        """Autonomous queue replenishment tool."""
+
+        name = "smart_replenish"
+        display_name = "Smart Replenish"
+        description = "Automatically adds new tracks to the queue based on harmonic compatibility."
+
+        def on_track_start(self, track_meta, status_obj=None, **kwargs):
+            if not status_obj or not status_obj.get("live_params", {}).get(
+                "continuous_mode"
+            ):
+                return
+            playlist = status_obj.get("playlist", [])
+            tracklist = status_obj.get("tracklist", [])
+            if len(playlist) < 3:
+                source_name = status_obj.get("active_source", "local_folder")
+                source_cls = PluginRegistry.get_sources().get(source_name)
+                if not source_cls:
+                    return
+                source = source_cls()
+                all_tracks = source.get_tracks(folder=status_obj.get("input_folder"))
+                already_seen = set(t["file"] for t in tracklist) | set(playlist)
+                candidates = [
+                    t
+                    for t in all_tracks
+                    if os.path.basename(t) not in already_seen and t not in already_seen
+                ]
+                if not candidates:
+                    return
+                target = random.choice(candidates)
+                status_obj["playlist"].append(os.path.basename(target))
+                print(
+                    f"[*] Smart Replenish: Added {os.path.basename(target)} to queue."
+                )
+
+
 def compile_master_set(args, status_obj=None):
     """The High-Performance Mixing Pipeline (8.11.0)."""
     folder = args.input
@@ -713,27 +756,34 @@ def compile_master_set(args, status_obj=None):
         # Process the ENTIRE overlap through crossover filters (avoids
         # lfilter startup transients at segment boundaries), then use
         # gain curves that respect the pre-fade/crossfade structure.
-        from scipy.signal import butter, lfilter
+        from scipy.signal import butter, filtfilt
 
-        # Phase-coherent bass management using subtraction
-        # Instead of splitting into LP+HP bands (which introduces phase shift
-        # and causes audible discontinuities at overlap boundaries), we extract
-        # the bass via lowpass and SUBTRACT it from the original:
-        #   output = (audio - bass) + bass * gain = audio - bass * (1 - gain)
+        # Phase-coherent bass management using zero-phase subtraction.
+        # We extract bass via zero-phase lowpass (filtfilt) and subtract
+        # it from the original:
+        #   output = audio - bass * (1 - gain)
         # When gain = 1.0: output = audio (exact, no artifacts)
         # When gain = 0.0: output = audio - bass (highpass effect)
-        # This eliminates ALL phase/timbre issues at boundaries.
+        #
+        # CRITICAL: filtfilt (zero-phase) replaces lfilter because:
+        #   - lfilter introduces ~1.7ms group delay, misaligning the
+        #     subtracted bass with the original. This creates a +2.1dB
+        #     BOOST around 150-200Hz (constructive interference from phase
+        #     shift) which sounds like "crosstalk ducking" during bass swap.
+        #   - filtfilt has zero group delay, so subtraction is perfectly
+        #     aligned: (1 - |H_LP|*alpha) is always a proper gain reduction
+        #     at bass frequencies, with no frequency-dependent bumps.
+        #
         b_lo, a_lo = butter(2, 150.0 / (0.5 * sr), btype="low")
 
-        # Extract bass component from each track
+        # Extract bass component using zero-phase filtering
         def _get_bass(audio):
-            n = audio.shape[1] if audio.ndim == 2 else len(audio)
             if audio.ndim == 2:
                 bass = np.zeros_like(audio)
                 for ch in range(audio.shape[0]):
-                    bass[ch] = lfilter(b_lo, a_lo, audio[ch])[:n]
+                    bass[ch] = filtfilt(b_lo, a_lo, audio[ch])
             else:
-                bass = lfilter(b_lo, a_lo, audio)[:n]
+                bass = filtfilt(b_lo, a_lo, audio)
             return bass
 
         m_bass = _get_bass(m_overlap)
@@ -768,67 +818,10 @@ def compile_master_set(args, status_obj=None):
             n_cf_curve[cf_x > 0.7] = 1.0
             n_bass_curve[pf_s:] = n_cf_curve
 
-        # Beat-synced bass ducking to eliminate galloping/flamming
-        # Detect ACTUAL kick peaks in the overlap slices (not theoretical
-        # beat positions, which are invalidated by sync nudge adjustments).
-        duck_ms = 25  # duck duration (ms) - just the kick attack
-        duck_depth = 0.6  # how much to reduce the other track's bass
-
-        def _detect_kick_peaks_in_overlap(audio_overlap, sr, bpm):
-            """Detect kick drum peaks in an overlap audio slice using 150Hz lowpass."""
-            from scipy.signal import butter as _b, lfilter as _lf, find_peaks as _fp
-
-            mono = (
-                np.mean(audio_overlap, axis=0)
-                if audio_overlap.ndim == 2
-                else audio_overlap
-            )
-            b_b, a_b = _b(2, 150.0 / (0.5 * sr), btype="low")
-            kick = np.abs(_lf(b_b, a_b, mono))
-            kmax = np.max(kick)
-            if kmax < 1e-6:
-                return np.array([])
-            kick = kick / kmax
-            dist = int(0.5 * 60 / bpm * sr)
-            peaks, _ = _fp(kick, height=0.15, distance=dist)
-            return peaks
-
-        def _make_duck_curve(peak_positions, total_samples, sr, duck_ms, depth):
-            """Create a gain curve with dips at each peak position."""
-            curve = np.ones(total_samples)
-            duck_samples = int(duck_ms * sr / 1000)
-            for center in peak_positions:
-                center = int(center)
-                start = max(0, center - duck_samples // 2)
-                end = min(total_samples, center + duck_samples // 2)
-                if end > start:
-                    t = np.linspace(0, 1, end - start)
-                    dip = 1.0 - depth * 0.5 * (1 - np.cos(2 * np.pi * t))
-                    curve[start:end] = np.minimum(curve[start:end], dip)
-            return curve
-
-        # Detect actual kick peaks in both overlap slices
-        m_kick_peaks = _detect_kick_peaks_in_overlap(m_overlap, sr, t_s_bpm)
-        n_kick_peaks = _detect_kick_peaks_in_overlap(n_intro_full, sr, t_s_bpm)
-
-        pf_s = (
-            min(int(pre_fade_ms * sr / 1000), total_samples) if pre_fade_ms > 0 else 0
-        )
-
-        # Duck each track when the OTHER track's kick hits
-        m_duck = _make_duck_curve(
-            n_kick_peaks[n_kick_peaks >= pf_s], total_samples, sr, duck_ms, duck_depth
-        )
-        n_duck = _make_duck_curve(
-            m_kick_peaks[m_kick_peaks >= pf_s], total_samples, sr, duck_ms, duck_depth
-        )
-
-        if pf_s > 0:
-            m_duck[:pf_s] = 1.0
-            n_duck[:pf_s] = 1.0
-
-        m_bass_curve *= n_duck
-        n_bass_curve *= m_duck
+        # NOTE: Beat-synced bass ducking removed � it caused audible
+        # volume dips on false peak detections (breakdowns, ambient intros)
+        # that sounded worse than the subtle galloping it was meant to fix.
+        # The bass swap curves above already handle kick handoff cleanly.
 
         # Recombine using subtraction: audio - bass * (1 - gain)
         # This is sample-accurate when gain = 1.0 (no phase artifacts)
@@ -905,66 +898,78 @@ def compile_master_set(args, status_obj=None):
                 warped_results[i - 3] = None
             if i - 3 < len(processed_tracks):
                 processed_tracks[i - 3] = None
+        if i == num_tracks - 1:
+            # Final mix normalization: ensure uniform loudness across the entire mix
+            if master:
+                print("[MASTERING] Normalizing final mix to target LUFS...")
+                mix_sr = master.frame_rate
+                mix_raw = pydub_to_ndarray(master)
+                mix_raw = normalize_lufs(mix_raw, mix_sr, config.TARGET_LUFS)
+                mix_raw = apply_limiter(mix_raw)
+                master = ndarray_to_pydub(mix_raw, mix_sr)
+                print("[MASTERING] Final mix normalization complete.")
 
-    # Export
-    if master:
-        output_type = getattr(args, "output_plugin", "local_file")
-        output_cls = PluginRegistry.get_outputs().get(output_type)
+            # Export
+            if master:
+                output_type = getattr(args, "output_plugin", "local_file")
+                output_cls = PluginRegistry.get_outputs().get(output_type)
 
-        if output_cls:
-            if status_obj:
-                status_obj["status"] = "Exporting FLAC"
-                status_obj["progress"] = 98
-            try:
-                sink = output_cls()
-                sink.export(
-                    master,
-                    tracklist,
-                    output=args.output,
-                    version=__version__,
-                    all_files=all_files,
-                    meta_list=meta_list,
-                    processed_tracks=processed_tracks,
-                )
-                if status_obj:
-                    status_obj["status"] = "Complete"
-                    status_obj["progress"] = 100
-                for tool in active_tools:
-                    tool.post_mix(status_obj=status_obj)
-            except Exception as e:
-                print(f"[ERROR] Output plugin failed: {e}")
-                import traceback
-
-                traceback.print_exc()
-                if status_obj:
-                    status_obj["status"] = f"Error: Export failed - {e}"
-        else:
-            # Direct fallback export
-            if status_obj:
-                status_obj["status"] = "Exporting FLAC"
-                status_obj["progress"] = 98
-            try:
-                print(
-                    f"[*] Exporting {len(master) / 1000 / 60:.1f} min mix to {args.output}..."
-                )
-                master.export(args.output, format="flac")
-                print("[*] Export complete!")
-                if status_obj:
-                    status_obj["status"] = "Complete"
-                    status_obj["progress"] = 100
-                tl_path = os.path.splitext(args.output)[0] + "_tracklist.txt"
-                with open(tl_path, "w") as f:
-                    f.write(f"Auto DJ v{__version__} Master Tracklist\n{'=' * 40}\n")
-                    for item in tracklist:
-                        f.write(
-                            f"[{item['timestamp']}] {item['file']} ({item['key']}) [{item['genre']}]\n"
+                if output_cls:
+                    if status_obj:
+                        status_obj["status"] = "Exporting FLAC"
+                        status_obj["progress"] = 98
+                    try:
+                        sink = output_cls()
+                        sink.export(
+                            master,
+                            tracklist,
+                            output=args.output,
+                            version=__version__,
+                            all_files=all_files,
+                            meta_list=meta_list,
+                            processed_tracks=processed_tracks,
                         )
-            except Exception as e:
-                print(f"[ERROR] Direct export failed: {e}")
-                if status_obj:
-                    status_obj["status"] = f"Error: Export failed - {e}"
+                        if status_obj:
+                            status_obj["status"] = "Complete"
+                            status_obj["progress"] = 100
+                        for tool in active_tools:
+                            tool.post_mix(status_obj=status_obj)
+                    except Exception as e:
+                        print(f"[ERROR] Output plugin failed: {e}")
+                        import traceback
 
+                        traceback.print_exc()
+                        if status_obj:
+                            status_obj["status"] = f"Error: Export failed - {e}"
+                else:
+                    # Direct fallback export
+                    if status_obj:
+                        status_obj["status"] = "Exporting FLAC"
+                        status_obj["progress"] = 98
+                    try:
+                        print(
+                            f"[*] Exporting {len(master) / 1000 / 60:.1f} min mix to {args.output}..."
+                        )
+                        master.export(args.output, format="flac")
+                        print("[*] Export complete!")
+                        if status_obj:
+                            status_obj["status"] = "Complete"
+                            status_obj["progress"] = 100
+                        tl_path = os.path.splitext(args.output)[0] + "_tracklist.txt"
+                        with open(tl_path, "w") as f:
+                            f.write(
+                                f"Auto DJ v{__version__} Master Tracklist\n{'=' * 40}\n"
+                            )
+                            for item in tracklist:
+                                f.write(
+                                    f"[{item['timestamp']}] {item['file']} ({item['key']}) [{item['genre']}]\n"
+                                )
+                    except Exception as e:
+                        print(f"[ERROR] Direct export failed: {e}")
+                        if status_obj:
+                            status_obj["status"] = f"Error: Export failed - {e}"
 
+<<<<<<< HEAD
         # Integration Bridge: Rekordbox XML Export (v7.3.0)
         xml_path = os.path.splitext(args.output)[0] + "_rekordbox.xml"
         try:
@@ -985,36 +990,72 @@ def transition_render_worker(args):
         arch_plugin = ArchetypeRegistry.get(mode)
         if arch_plugin:
             f_m_raw, f_n_raw = arch_plugin.apply(outro_raw, intro_raw, sr, **dsp_kwargs)
+=======
+    def _dj_crossfade(audio_array, fade_type="in"):
+        """Equal-power crossfade designed for DJ mixer style transitions.
+
+        This works WITH the bass swap in _apply_bass_swap_transition:
+        - The bass swap handles the low-frequency handoff (kick drum exchange)
+        - This crossfade handles the mid/high volume balance
+        - Together they create a smooth transition like a real DJ mixer
+
+        The curves are asymmetric to match DJ practice:
+        - Fade OUT (outro): gentle hold, then smooth release. The outro stays
+          audible until late in the transition because the bass swap already
+          reduced its low-end energy, making the remaining mid/high less prominent.
+        - Fade IN (intro): smooth equal-power rise. The intro's bass is already
+          managed by the swap, so we just need to bring up the overall level.
+        """
+        n = audio_array.shape[1] if audio_array.ndim == 2 else len(audio_array)
+        x = np.linspace(0, 1, n)
+
+        if fade_type == "out":
+            # Outro: equal-power fade with slight hold
+            # cos(pi*x/2) is the standard equal-power fade-out
+            # The slight x^0.8 exponent keeps it louder a bit longer
+            curve = np.cos(np.pi * x**0.8 / 2)
+>>>>>>> upstream/main
         else:
-            # Fallback: use the bass swap transition (same as progressive)
-            from .dsp import _apply_bass_swap_transition
+            # Intro: equal-power fade-in
+            # sin(pi*x/2) is the standard equal-power fade-in
+            # The slight x^1.2 exponent makes it come in a touch gentler
+            curve = np.sin(np.pi * x**1.2 / 2)
 
-            f_m_raw, f_n_raw = _apply_bass_swap_transition(outro_raw, intro_raw, sr)
+        if audio_array.ndim == 2:
+            return audio_array * curve[np.newaxis, :]
+        return audio_array * curve
 
-        # Apply gentle volume crossfade (complements EQ swap in DualFilterSweep)
-        f_m_faded = _dj_crossfade(f_m_raw, fade_type="out")
-        f_n_faded = _dj_crossfade(f_n_raw, fade_type="in")
+    def transition_render_worker(args):
+        """Parallel worker for rendering a single transition overlap."""
+        outro_raw, intro_raw, sr, mode, ms_trans, ideal_p, dsp_kwargs = args
+        try:
+            arch_plugin = ArchetypeRegistry.get(mode)
+            if arch_plugin:
+                f_m_raw, f_n_raw = arch_plugin.apply(
+                    outro_raw, intro_raw, sr, **dsp_kwargs
+                )
+            else:
+                # Fallback: use the bass swap transition (same as progressive)
+                from .dsp import _apply_bass_swap_transition
 
-        # Mix-Bus Summation
-        min_len = (
-            min(f_m_faded.shape[1], f_n_faded.shape[1])
-            if f_m_faded.ndim == 2
-            else min(len(f_m_faded), len(f_n_faded))
-        )
-        if f_m_faded.ndim == 2:
-            summed = f_m_faded[:, :min_len] + f_n_faded[:, :min_len]
-        else:
-            summed = f_m_faded[:min_len] + f_n_faded[:min_len]
+                f_m_raw, f_n_raw = _apply_bass_swap_transition(outro_raw, intro_raw, sr)
 
-        summed = apply_limiter(summed)
-        return summed, sr
-    except Exception as e:
-        import traceback
+            # Apply gentle volume crossfade (complements EQ swap in DualFilterSweep)
+            f_m_faded = _dj_crossfade(f_m_raw, fade_type="out")
+            f_n_faded = _dj_crossfade(f_n_raw, fade_type="in")
 
-        print(f"[ERROR] transition_render_worker failed: {e}")
-        traceback.print_exc()
-        return None, str(e)
+            # Mix-Bus Summation
+            min_len = (
+                min(f_m_faded.shape[1], f_n_faded.shape[1])
+                if f_m_faded.ndim == 2
+                else min(len(f_m_faded), len(f_n_faded))
+            )
+            if f_m_faded.ndim == 2:
+                summed = f_m_faded[:, :min_len] + f_n_faded[:, :min_len]
+            else:
+                summed = f_m_faded[:min_len] + f_n_faded[:min_len]
 
+<<<<<<< HEAD
 def ms_to_timestamp(ms):
     s = int((ms / 1000) % 60)
     m = int((ms / (1000 * 60)) % 60)
@@ -1057,3 +1098,13 @@ class SmartReplenishTool(ToolPlugin):
             target = random.choice(candidates)
             status_obj["playlist"].append(os.path.basename(target))
             print(f"[*] Smart Replenish: Added {os.path.basename(target)} to queue.")
+=======
+            summed = apply_limiter(summed)
+            return summed, sr
+        except Exception as e:
+            import traceback
+
+            print(f"[ERROR] transition_render_worker failed: {e}")
+            traceback.print_exc()
+            return None, str(e)
+>>>>>>> upstream/main

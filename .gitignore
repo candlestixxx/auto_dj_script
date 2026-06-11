@@ -15,6 +15,7 @@ psyset_source/
 metamcp.db
 metamcp.db-journal
 *.db
+<<<<<<< HEAD
 data/
 
 # Logs and Outputs
@@ -23,3 +24,13 @@ final_dj_master*
 *.xml
 *.txt
 autodj.egg-info/
+=======
+# Large media files - use Git LFS or external storage
+*.m4a
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.aiff
+.pi-lens/
+>>>>>>> upstream/main
